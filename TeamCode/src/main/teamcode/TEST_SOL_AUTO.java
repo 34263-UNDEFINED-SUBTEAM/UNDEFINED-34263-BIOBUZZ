@@ -8,7 +8,6 @@ import com.qualcomm.hardware.sparkfun.SparkFunOTOS;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -19,52 +18,48 @@ import java.util.List;
 @Autonomous(name = "TEST SOL AUTO", group = "Autonomous")
 public class TEST_SOL_AUTO extends LinearOpMode {
 
-    private DcMotor frontLeft;
-    private DcMotor frontRight;
-    private DcMotor backLeft;
-    private DcMotor backRight;
+    private DcMotor frontLeftDrive;
+    private DcMotor frontRightDrive;
+    private DcMotor backLeftDrive;
+    private DcMotor backRightDrive;
 
-    private SparkFunOTOS otos;
     private Limelight3A limelight;
+    private SparkFunOTOS otos;
 
-    private boolean usingOTOS = false;
-    private boolean usingLimelight = false;
+    private static final double SQUARE_SIZE = 48.0;
 
-    private static final double SQUARE_SIZE = 60.0;
-    private static final double BALL_DISTANCE = 24.0;
-
-    private static final double MAX_POWER = 0.65;
-    private static final double MIN_POWER = 0.12;
-
-    private static final double POSITION_KP = 0.035;
-    private static final double HEADING_KP = 0.018;
-
-    private static final double POSITION_TOLERANCE = 1.0;
-    private static final double HEADING_TOLERANCE = 2.0;
-    private static final double TX_TOLERANCE = 1.5;
-
-    private static final double FALLBACK_TICKS_PER_REV = 537.7;
+    /*
+     * 537.7 is common for goBILDA 312 RPM motors.
+     * If your motors use a different encoder count,
+     * this value will need to be changed.
+     */
+    private static final double TICKS_PER_REV = 537.7;
     private static final double WHEEL_DIAMETER = 4.0;
 
     private static final double TICKS_PER_INCH =
-            FALLBACK_TICKS_PER_REV / (Math.PI * WHEEL_DIAMETER);
+            TICKS_PER_REV / (Math.PI * WHEEL_DIAMETER);
+
+    private static final double DRIVE_POWER = 0.55;
+
+    private static final double TAG_STRAFE_POWER = 0.35;
+    private static final long TAG_STRAFE_TIME = 1000;
 
     @Override
     public void runOpMode() throws InterruptedException {
 
-        setupMotors();
-        setupOTOS();
-        setupLimelight();
+        initializeMotors();
+        initializeLimelight();
+        initializeOTOS();
 
-        if (!motorsReady()) {
-            telemetry.addLine("Drive motors not found.");
-            telemetry.update();
-            return;
-        }
-
-        telemetry.addData("OTOS", usingOTOS ? "Ready" : "Not found");
-        telemetry.addData("Limelight", usingLimelight ? "Ready" : "Not found");
-        telemetry.addLine("Ready");
+        telemetry.addLine("Initialized");
+        telemetry.addData(
+                "Limelight",
+                limelight != null ? "Connected" : "Not found"
+        );
+        telemetry.addData(
+                "OTOS",
+                otos != null ? "Connected" : "Not found"
+        );
         telemetry.update();
 
         waitForStart();
@@ -74,270 +69,310 @@ public class TEST_SOL_AUTO extends LinearOpMode {
             return;
         }
 
-        if (usingOTOS) {
-            runSquareWithOTOS();
-        } else {
-            runSquareWithEncoders();
-        }
+        /*
+         * 4 ft x 4 ft square
+         *
+         * 1. Left 48"
+         * 2. Forward 48"
+         * 3. Right 48"
+         * 4. Backward 48"
+         */
 
-        stopRobot();
+        strafeLeft(SQUARE_SIZE);
 
-        if (usingLimelight) {
-            findAndDriveToBall();
-        }
-
-        stopRobot();
-    }
-
-    private void setupMotors() {
-
-        frontLeft = findMotor(
-                "front_left_drive",
-                "frontLeft",
-                "front_left",
-                "left_front"
-        );
-
-        frontRight = findMotor(
-                "front_right_drive",
-                "frontRight",
-                "front_right",
-                "right_front"
-        );
-
-        backLeft = findMotor(
-                "back_left_drive",
-                "backLeft",
-                "back_left",
-                "left_back"
-        );
-
-        backRight = findMotor(
-                "back_right_drive",
-                "backRight",
-                "back_right",
-                "right_back"
-        );
-
-        if (motorsReady()) {
-            frontLeft.setDirection(DcMotorSimple.Direction.FORWARD);
-            backLeft.setDirection(DcMotorSimple.Direction.FORWARD);
-
-            frontRight.setDirection(DcMotorSimple.Direction.REVERSE);
-            backRight.setDirection(DcMotorSimple.Direction.REVERSE);
-
-            setRunMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        if (!opModeIsActive()) {
             stopRobot();
-        }
-    }
-
-    private DcMotor findMotor(String... names) {
-
-        for (String name : names) {
-            try {
-                return hardwareMap.get(DcMotor.class, name);
-            } catch (Exception ignored) {
-            }
+            return;
         }
 
-        return null;
+        driveForward(SQUARE_SIZE);
+
+        if (!opModeIsActive()) {
+            stopRobot();
+            return;
+        }
+
+        strafeRight(SQUARE_SIZE);
+
+        if (!opModeIsActive()) {
+            stopRobot();
+            return;
+        }
+
+        driveBackward(SQUARE_SIZE);
+
+        stopRobot();
+
+        /*
+         * The square is completely finished here.
+         * AprilTags are not checked before this point.
+         */
+        sleep(500);
+
+        aprilTagAction();
+
+        stopRobot();
     }
 
-    private boolean motorsReady() {
+    private void initializeMotors() {
 
-        return frontLeft != null &&
-                frontRight != null &&
-                backLeft != null &&
-                backRight != null;
+        frontLeftDrive =
+                hardwareMap.get(
+                        DcMotor.class,
+                        "front_left_drive"
+                );
+
+        frontRightDrive =
+                hardwareMap.get(
+                        DcMotor.class,
+                        "front_right_drive"
+                );
+
+        backLeftDrive =
+                hardwareMap.get(
+                        DcMotor.class,
+                        "back_left_drive"
+                );
+
+        backRightDrive =
+                hardwareMap.get(
+                        DcMotor.class,
+                        "back_right_drive"
+                );
+
+        /*
+         * This matches the direction setup used
+         * in the official FTC mecanum sample.
+         */
+        frontLeftDrive.setDirection(
+                DcMotor.Direction.REVERSE
+        );
+
+        backLeftDrive.setDirection(
+                DcMotor.Direction.REVERSE
+        );
+
+        frontRightDrive.setDirection(
+                DcMotor.Direction.FORWARD
+        );
+
+        backRightDrive.setDirection(
+                DcMotor.Direction.FORWARD
+        );
+
+        resetEncoders();
+
+        setRunMode(
+                DcMotor.RunMode.RUN_USING_ENCODER
+        );
+
+        stopRobot();
     }
 
-    private void setupOTOS() {
+    private void initializeLimelight() {
 
-        String[] names = {
-                "otos",
-                "sensor_otos",
-                "SparkFunOTOS",
-                "sparkfun_otos"
-        };
+        try {
 
-        for (String name : names) {
-            try {
-                otos = hardwareMap.get(SparkFunOTOS.class, name);
-
-                if (otos.begin()) {
-
-                    otos.setLinearUnit(DistanceUnit.INCH);
-                    otos.setAngularUnit(AngleUnit.DEGREES);
-
-                    telemetry.addLine("Calibrating OTOS...");
-                    telemetry.update();
-
-                    otos.calibrateImu();
-
-                    otos.resetTracking();
-                    otos.setPosition(
-                            new SparkFunOTOS.Pose2D(0, 0, 0)
+            limelight =
+                    hardwareMap.get(
+                            Limelight3A.class,
+                            "limelight"
                     );
 
-                    usingOTOS = true;
-                    return;
-                }
+            limelight.pipelineSwitch(0);
+            limelight.start();
 
-            } catch (Exception ignored) {
-            }
+        } catch (Exception e) {
+
+            limelight = null;
         }
     }
 
-    private void setupLimelight() {
+    private void initializeOTOS() {
 
-        String[] names = {
-                "limelight",
-                "Limelight",
-                "limelight3A"
-        };
+        try {
 
-        for (String name : names) {
-            try {
+            otos =
+                    hardwareMap.get(
+                            SparkFunOTOS.class,
+                            "sensor_otos"
+                    );
 
-                limelight =
-                        hardwareMap.get(Limelight3A.class, name);
+            otos.setLinearUnit(
+                    DistanceUnit.INCH
+            );
 
-                limelight.pipelineSwitch(0);
-                limelight.start();
+            otos.setAngularUnit(
+                    AngleUnit.DEGREES
+            );
 
-                usingLimelight = true;
-                return;
+            otos.resetTracking();
 
-            } catch (Exception ignored) {
-            }
+            otos.setPosition(
+                    new SparkFunOTOS.Pose2D(
+                            0,
+                            0,
+                            0
+                    )
+            );
+
+        } catch (Exception e) {
+
+            otos = null;
         }
     }
 
-    private void runSquareWithOTOS() {
+    private void resetEncoders() {
 
-        SparkFunOTOS.Pose2D start = otos.getPosition();
-
-        double x = start.x;
-        double y = start.y;
-        double heading = start.h;
-
-        moveToOTOS(
-                x - SQUARE_SIZE,
-                y,
-                heading,
-                "Left"
+        frontLeftDrive.setMode(
+                DcMotor.RunMode.STOP_AND_RESET_ENCODER
         );
 
-        moveToOTOS(
-                x - SQUARE_SIZE,
-                y + SQUARE_SIZE,
-                heading,
-                "Forward"
+        frontRightDrive.setMode(
+                DcMotor.RunMode.STOP_AND_RESET_ENCODER
         );
 
-        moveToOTOS(
-                x,
-                y + SQUARE_SIZE,
-                heading,
-                "Right"
+        backLeftDrive.setMode(
+                DcMotor.RunMode.STOP_AND_RESET_ENCODER
         );
 
-        moveToOTOS(
-                x,
-                y,
-                heading,
-                "Back"
+        backRightDrive.setMode(
+                DcMotor.RunMode.STOP_AND_RESET_ENCODER
         );
     }
 
-    private boolean moveToOTOS(
-            double targetX,
-            double targetY,
-            double targetHeading,
+    private void setRunMode(DcMotor.RunMode mode) {
+
+        frontLeftDrive.setMode(mode);
+        frontRightDrive.setMode(mode);
+        backLeftDrive.setMode(mode);
+        backRightDrive.setMode(mode);
+    }
+
+    private void driveForward(double inches) {
+
+        moveRobot(
+                inches,
+                inches,
+                inches,
+                inches,
+                "FORWARD"
+        );
+    }
+
+    private void driveBackward(double inches) {
+
+        moveRobot(
+                -inches,
+                -inches,
+                -inches,
+                -inches,
+                "BACKWARD"
+        );
+    }
+
+    private void strafeLeft(double inches) {
+
+        /*
+         * Official mecanum convention:
+         *
+         * FL = -
+         * FR = +
+         * BL = +
+         * BR = -
+         */
+        moveRobot(
+                -inches,
+                inches,
+                inches,
+                -inches,
+                "STRAFE LEFT"
+        );
+    }
+
+    private void strafeRight(double inches) {
+
+        /*
+         * Opposite of strafe left.
+         */
+        moveRobot(
+                inches,
+                -inches,
+                -inches,
+                inches,
+                "STRAFE RIGHT"
+        );
+    }
+
+    private void moveRobot(
+            double frontLeftInches,
+            double frontRightInches,
+            double backLeftInches,
+            double backRightInches,
             String movement) {
 
-        long startTime = System.currentTimeMillis();
-        long timeout = 6000;
+        int frontLeftTarget =
+                (int) Math.round(
+                        frontLeftInches * TICKS_PER_INCH
+                );
 
-        while (opModeIsActive()) {
+        int frontRightTarget =
+                (int) Math.round(
+                        frontRightInches * TICKS_PER_INCH
+                );
 
-            if (System.currentTimeMillis() - startTime > timeout) {
-                stopRobot();
-                return false;
-            }
+        int backLeftTarget =
+                (int) Math.round(
+                        backLeftInches * TICKS_PER_INCH
+                );
 
-            SparkFunOTOS.Pose2D pose = otos.getPosition();
+        int backRightTarget =
+                (int) Math.round(
+                        backRightInches * TICKS_PER_INCH
+                );
 
-            double errorX = targetX - pose.x;
-            double errorY = targetY - pose.y;
+        /*
+         * IMPORTANT:
+         *
+         * Set every target BEFORE changing
+         * any motor to RUN_TO_POSITION.
+         */
+        resetEncoders();
 
-            double distance =
-                    Math.hypot(errorX, errorY);
+        frontLeftDrive.setTargetPosition(
+                frontLeftTarget
+        );
 
-            double headingError =
-                    AngleUnit.normalizeDegrees(
-                            targetHeading - pose.h
-                    );
+        frontRightDrive.setTargetPosition(
+                frontRightTarget
+        );
 
-            if (distance <= POSITION_TOLERANCE &&
-                    Math.abs(headingError) <= HEADING_TOLERANCE) {
+        backLeftDrive.setTargetPosition(
+                backLeftTarget
+        );
 
-                stopRobot();
-                sleep(150);
-                return true;
-            }
+        backRightDrive.setTargetPosition(
+                backRightTarget
+        );
 
-            double headingRadians =
-                    Math.toRadians(pose.h);
+        setRunMode(
+                DcMotor.RunMode.RUN_TO_POSITION
+        );
 
-            double robotX =
-                    errorX * Math.cos(headingRadians) +
-                            errorY * Math.sin(headingRadians);
+        frontLeftDrive.setPower(DRIVE_POWER);
+        frontRightDrive.setPower(DRIVE_POWER);
+        backLeftDrive.setPower(DRIVE_POWER);
+        backRightDrive.setPower(DRIVE_POWER);
 
-            double robotY =
-                    -errorX * Math.sin(headingRadians) +
-                            errorY * Math.cos(headingRadians);
-
-            double xPower =
-                    Range.clip(
-                            robotX * POSITION_KP,
-                            -MAX_POWER,
-                            MAX_POWER
-                    );
-
-            double yPower =
-                    Range.clip(
-                            robotY * POSITION_KP,
-                            -MAX_POWER,
-                            MAX_POWER
-                    );
-
-            double turnPower =
-                    Range.clip(
-                            headingError * HEADING_KP,
-                            -0.25,
-                            0.25
-                    );
-
-            if (Math.abs(xPower) > 0 &&
-                    Math.abs(xPower) < MIN_POWER) {
-
-                xPower =
-                        Math.copySign(MIN_POWER, xPower);
-            }
-
-            if (Math.abs(yPower) > 0 &&
-                    Math.abs(yPower) < MIN_POWER) {
-
-                yPower =
-                        Math.copySign(MIN_POWER, yPower);
-            }
-
-            driveMecanum(
-                    yPower,
-                    xPower,
-                    turnPower
-            );
+        while (
+                opModeIsActive() &&
+                        (
+                                frontLeftDrive.isBusy() ||
+                                        frontRightDrive.isBusy() ||
+                                        backLeftDrive.isBusy() ||
+                                        backRightDrive.isBusy()
+                        )
+        ) {
 
             telemetry.addData(
                     "Movement",
@@ -345,136 +380,63 @@ public class TEST_SOL_AUTO extends LinearOpMode {
             );
 
             telemetry.addData(
-                    "X",
-                    "%.1f / %.1f",
-                    pose.x,
-                    targetX
+                    "FL",
+                    "%d / %d",
+                    frontLeftDrive.getCurrentPosition(),
+                    frontLeftTarget
             );
 
             telemetry.addData(
-                    "Y",
-                    "%.1f / %.1f",
-                    pose.y,
-                    targetY
+                    "FR",
+                    "%d / %d",
+                    frontRightDrive.getCurrentPosition(),
+                    frontRightTarget
             );
 
             telemetry.addData(
-                    "Heading",
-                    "%.1f / %.1f",
-                    pose.h,
-                    targetHeading
+                    "BL",
+                    "%d / %d",
+                    backLeftDrive.getCurrentPosition(),
+                    backLeftTarget
+            );
+
+            telemetry.addData(
+                    "BR",
+                    "%d / %d",
+                    backRightDrive.getCurrentPosition(),
+                    backRightTarget
             );
 
             telemetry.update();
         }
 
         stopRobot();
-        return false;
-    }
-
-    private void runSquareWithEncoders() {
-
-        driveEncoder(0.55, -SQUARE_SIZE);
-        driveEncoder(0.55, SQUARE_SIZE);
-
-        strafeEncoder(0.55, SQUARE_SIZE);
-        strafeEncoder(0.55, -SQUARE_SIZE);
-    }
-
-    private void driveEncoder(
-            double power,
-            double inches) {
-
-        int ticks =
-                (int) Math.round(
-                        inches * TICKS_PER_INCH
-                );
 
         setRunMode(
-                DcMotor.RunMode.STOP_AND_RESET_ENCODER
+                DcMotor.RunMode.RUN_USING_ENCODER
         );
 
-        frontLeft.setTargetPosition(ticks);
-        frontRight.setTargetPosition(ticks);
-        backLeft.setTargetPosition(ticks);
-        backRight.setTargetPosition(ticks);
+        sleep(200);
+    }
 
-        setRunMode(
-                DcMotor.RunMode.RUN_TO_POSITION
-        );
+    private void aprilTagAction()
+            throws InterruptedException {
 
-        setPower(Math.abs(power));
-
-        while (opModeIsActive() &&
-                (frontLeft.isBusy() ||
-                        frontRight.isBusy() ||
-                        backLeft.isBusy() ||
-                        backRight.isBusy())) {
-
-            telemetry.addData(
-                    "Encoder",
-                    "Driving"
+        if (limelight == null) {
+            telemetry.addLine(
+                    "Limelight unavailable."
             );
-
             telemetry.update();
+            return;
         }
-
-        stopRobot();
-        sleep(150);
-    }
-
-    private void strafeEncoder(
-            double power,
-            double inches) {
-
-        int ticks =
-                (int) Math.round(
-                        inches * TICKS_PER_INCH
-                );
-
-        setRunMode(
-                DcMotor.RunMode.STOP_AND_RESET_ENCODER
-        );
-
-        frontLeft.setTargetPosition(-ticks);
-        backLeft.setTargetPosition(ticks);
-
-        frontRight.setTargetPosition(ticks);
-        backRight.setTargetPosition(-ticks);
-
-        setRunMode(
-                DcMotor.RunMode.RUN_TO_POSITION
-        );
-
-        setPower(Math.abs(power));
-
-        while (opModeIsActive() &&
-                (frontLeft.isBusy() ||
-                        frontRight.isBusy() ||
-                        backLeft.isBusy() ||
-                        backRight.isBusy())) {
-
-            telemetry.addData(
-                    "Encoder",
-                    "Strafing"
-            );
-
-            telemetry.update();
-        }
-
-        stopRobot();
-        sleep(150);
-    }
-
-    private void findAndDriveToBall() {
 
         long startTime =
                 System.currentTimeMillis();
 
-        boolean found = false;
-
-        while (opModeIsActive() &&
-                System.currentTimeMillis() - startTime < 8000) {
+        while (
+                opModeIsActive() &&
+                        System.currentTimeMillis() - startTime < 5000
+        ) {
 
             LLResult result =
                     limelight.getLatestResult();
@@ -482,97 +444,71 @@ public class TEST_SOL_AUTO extends LinearOpMode {
             if (result != null &&
                     result.isValid()) {
 
-                List<LLResultTypes.DetectorResult>
-                        detections =
-                        result.getDetectorResults();
+                List<LLResultTypes.FiducialResult>
+                        tags =
+                        result.getFiducialResults();
 
-                for (LLResultTypes.DetectorResult detection :
-                        detections) {
+                for (
+                        LLResultTypes.FiducialResult tag :
+                        tags
+                ) {
 
-                    String label =
-                            detection.getClassName();
+                    int id =
+                            tag.getFiducialId();
 
-                    if (isPinkBall(label)) {
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (found) {
-                    break;
-                }
-            }
-
-            driveMecanum(
-                    0,
-                    0,
-                    0.20
-            );
-        }
-
-        stopRobot();
-
-        if (!found) {
-
-            telemetry.addLine(
-                    "Pink ball not found."
-            );
-
-            telemetry.update();
-            return;
-        }
-
-        centerOnBall();
-
-        driveForwardDistance(
-                BALL_DISTANCE
-        );
-    }
-
-    private void centerOnBall() {
-
-        long startTime =
-                System.currentTimeMillis();
-
-        while (opModeIsActive() &&
-                System.currentTimeMillis() - startTime < 5000) {
-
-            LLResult result =
-                    limelight.getLatestResult();
-
-            if (result == null ||
-                    !result.isValid()) {
-
-                stopRobot();
-                continue;
-            }
-
-            double tx = result.getTx();
-
-            if (Math.abs(tx) <= TX_TOLERANCE) {
-
-                stopRobot();
-                sleep(200);
-                return;
-            }
-
-            double turn =
-                    Range.clip(
-                            tx * 0.02,
-                            -0.25,
-                            0.25
+                    telemetry.addData(
+                            "AprilTag",
+                            id
                     );
 
-            driveMecanum(
-                    0,
-                    0,
-                    turn
+                    telemetry.update();
+
+                    if (id == 42 || id == 43) {
+
+                        strafeLeftForTime();
+                        return;
+                    }
+
+                    if (id == 44 || id == 45) {
+
+                        strafeRightForTime();
+                        return;
+                    }
+                }
+            }
+
+            stopRobot();
+            sleep(20);
+        }
+
+        stopRobot();
+    }
+
+    private void strafeLeftForTime()
+            throws InterruptedException {
+
+        long start =
+                System.currentTimeMillis();
+
+        while (
+                opModeIsActive() &&
+                        System.currentTimeMillis() - start <
+                                TAG_STRAFE_TIME
+        ) {
+
+            /*
+             * Same mecanum pattern as the
+             * official FTC strafe-left convention.
+             */
+            setMecanumPower(
+                    -TAG_STRAFE_POWER,
+                    TAG_STRAFE_POWER,
+                    TAG_STRAFE_POWER,
+                    -TAG_STRAFE_POWER
             );
 
-            telemetry.addData(
-                    "Ball tx",
-                    "%.2f",
-                    tx
+            telemetry.addLine(
+                    "ID 42/43 -> STRAFE LEFT"
             );
 
             telemetry.update();
@@ -581,139 +517,52 @@ public class TEST_SOL_AUTO extends LinearOpMode {
         stopRobot();
     }
 
-    private boolean isPinkBall(String label) {
+    private void strafeRightForTime()
+            throws InterruptedException {
 
-        if (label == null) {
-            return false;
-        }
+        long start =
+                System.currentTimeMillis();
 
-        String name =
-                label.toLowerCase();
+        while (
+                opModeIsActive() &&
+                        System.currentTimeMillis() - start <
+                                TAG_STRAFE_TIME
+        ) {
 
-        return name.contains("pink") &&
-                (name.contains("ball") ||
-                        name.contains("wiffle"));
-    }
-
-    private void driveForwardDistance(
-            double inches) {
-
-        if (usingOTOS) {
-
-            SparkFunOTOS.Pose2D pose =
-                    otos.getPosition();
-
-            double heading =
-                    Math.toRadians(pose.h);
-
-            double targetX =
-                    pose.x -
-                            Math.sin(heading) *
-                                    inches;
-
-            double targetY =
-                    pose.y +
-                            Math.cos(heading) *
-                                    inches;
-
-            moveToOTOS(
-                    targetX,
-                    targetY,
-                    pose.h,
-                    "Ball"
+            setMecanumPower(
+                    TAG_STRAFE_POWER,
+                    -TAG_STRAFE_POWER,
+                    -TAG_STRAFE_POWER,
+                    TAG_STRAFE_POWER
             );
 
-            return;
+            telemetry.addLine(
+                    "ID 44/45 -> STRAFE RIGHT"
+            );
+
+            telemetry.update();
         }
 
-        driveEncoder(
-                0.45,
-                inches
-        );
+        stopRobot();
     }
 
-    private void driveMecanum(
-            double forward,
-            double strafe,
-            double turn) {
+    private void setMecanumPower(
+            double frontLeft,
+            double frontRight,
+            double backLeft,
+            double backRight) {
 
-        double frontLeftPower =
-                forward + strafe + turn;
-
-        double backLeftPower =
-                forward - strafe + turn;
-
-        double frontRightPower =
-                forward - strafe - turn;
-
-        double backRightPower =
-                forward + strafe - turn;
-
-        double max =
-                Math.max(
-                        1.0,
-                        Math.max(
-                                Math.abs(frontLeftPower),
-                                Math.max(
-                                        Math.abs(backLeftPower),
-                                        Math.max(
-                                                Math.abs(frontRightPower),
-                                                Math.abs(backRightPower)
-                                        )
-                                )
-                        )
-                );
-
-        frontLeft.setPower(
-                frontLeftPower / max
-        );
-
-        backLeft.setPower(
-                backLeftPower / max
-        );
-
-        frontRight.setPower(
-                frontRightPower / max
-        );
-
-        backRight.setPower(
-                backRightPower / max
-        );
-    }
-
-    private void setPower(double power) {
-
-        frontLeft.setPower(power);
-        frontRight.setPower(power);
-        backLeft.setPower(power);
-        backRight.setPower(power);
-    }
-
-    private void setRunMode(
-            DcMotor.RunMode mode) {
-
-        frontLeft.setMode(mode);
-        frontRight.setMode(mode);
-        backLeft.setMode(mode);
-        backRight.setMode(mode);
+        frontLeftDrive.setPower(frontLeft);
+        frontRightDrive.setPower(frontRight);
+        backLeftDrive.setPower(backLeft);
+        backRightDrive.setPower(backRight);
     }
 
     private void stopRobot() {
 
-        if (frontLeft != null) {
-            frontLeft.setPower(0);
-        }
-
-        if (frontRight != null) {
-            frontRight.setPower(0);
-        }
-
-        if (backLeft != null) {
-            backLeft.setPower(0);
-        }
-
-        if (backRight != null) {
-            backRight.setPower(0);
-        }
+        frontLeftDrive.setPower(0);
+        frontRightDrive.setPower(0);
+        backLeftDrive.setPower(0);
+        backRightDrive.setPower(0);
     }
 }
