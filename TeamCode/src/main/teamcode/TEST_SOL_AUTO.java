@@ -21,12 +21,13 @@ public class TEST_SOL_AUTO extends LinearOpMode {
 
     private Limelight3A limelight;
 
+    // These values must match your actual drivetrain.
     private static final double TICKS_PER_REV = 537.7;
     private static final double WHEEL_DIAMETER = 4.0;
     private static final double TICKS_PER_INCH =
             TICKS_PER_REV / (Math.PI * WHEEL_DIAMETER);
 
-    private static final double SQUARE_POWER = 0.4;
+    private static final double DRIVE_POWER = 0.35;
     private static final double STRAFE_POWER = 0.25;
     private static final double SIDE_LENGTH = 48.0;
     private static final double MOVE_TIMEOUT = 12.0;
@@ -34,6 +35,7 @@ public class TEST_SOL_AUTO extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
 
+        // Initialize the four drive motors.
         frontLeft = hardwareMap.get(
                 DcMotor.class, "front_left_drive");
         frontRight = hardwareMap.get(
@@ -43,6 +45,7 @@ public class TEST_SOL_AUTO extends LinearOpMode {
         backRight = hardwareMap.get(
                 DcMotor.class, "back_right_drive");
 
+        // Standard FTC mecanum direction setup.
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
         backLeft.setDirection(DcMotor.Direction.REVERSE);
         frontRight.setDirection(DcMotor.Direction.FORWARD);
@@ -53,7 +56,8 @@ public class TEST_SOL_AUTO extends LinearOpMode {
         setDriveMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         setDriveMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        telemetry.addLine("Ready to run square");
+        telemetry.addLine("TEST_SOL_AUTO initialized");
+        telemetry.addLine("Square first, Limelight second");
         telemetry.update();
 
         waitForStart();
@@ -62,9 +66,9 @@ public class TEST_SOL_AUTO extends LinearOpMode {
             return;
         }
 
-        // PHASE 1: COMPLETE THE SQUARE
+        // PHASE 1: DRIVE A 4 FT BY 4 FT SQUARE
 
-        telemetry.addLine("Square 1: Strafe Left");
+        telemetry.addLine("1/4: Strafe left");
         telemetry.update();
 
         if (!moveRobot(-SIDE_LENGTH, SIDE_LENGTH,
@@ -73,7 +77,7 @@ public class TEST_SOL_AUTO extends LinearOpMode {
             return;
         }
 
-        telemetry.addLine("Square 2: Forward");
+        telemetry.addLine("2/4: Drive forward");
         telemetry.update();
 
         if (!moveRobot(SIDE_LENGTH, SIDE_LENGTH,
@@ -82,7 +86,7 @@ public class TEST_SOL_AUTO extends LinearOpMode {
             return;
         }
 
-        telemetry.addLine("Square 3: Strafe Right");
+        telemetry.addLine("3/4: Strafe right");
         telemetry.update();
 
         if (!moveRobot(SIDE_LENGTH, -SIDE_LENGTH,
@@ -91,7 +95,7 @@ public class TEST_SOL_AUTO extends LinearOpMode {
             return;
         }
 
-        telemetry.addLine("Square 4: Backward");
+        telemetry.addLine("4/4: Drive backward");
         telemetry.update();
 
         if (!moveRobot(-SIDE_LENGTH, -SIDE_LENGTH,
@@ -105,7 +109,7 @@ public class TEST_SOL_AUTO extends LinearOpMode {
         // PHASE 2: LIMELIGHT APRILTAG STRAFING
 
         telemetry.addLine("Square complete");
-        telemetry.addLine("Initializing Limelight");
+        telemetry.addLine("Starting Limelight");
         telemetry.update();
 
         limelight = hardwareMap.get(
@@ -114,14 +118,12 @@ public class TEST_SOL_AUTO extends LinearOpMode {
         limelight.pipelineSwitch(0);
         limelight.start();
 
-        sleep(250);
-
         while (opModeIsActive()) {
 
             LLResult result = limelight.getLatestResult();
 
-            boolean leftTagFound = false;
-            boolean rightTagFound = false;
+            boolean leftFound = false;
+            boolean rightFound = false;
 
             if (result != null && result.isValid()) {
 
@@ -132,24 +134,24 @@ public class TEST_SOL_AUTO extends LinearOpMode {
 
                     int id = tag.getFiducialId();
 
-                    telemetry.addData("Tag ID", id);
+                    telemetry.addData("AprilTag ID", id);
 
                     if (id == 43 || id == 44) {
-                        leftTagFound = true;
+                        leftFound = true;
                     }
 
                     if (id == 45 || id == 46) {
-                        rightTagFound = true;
+                        rightFound = true;
                     }
                 }
             }
 
-            if (leftTagFound && rightTagFound) {
+            if (leftFound && rightFound) {
 
                 stopRobot();
-                telemetry.addLine("Conflicting tags: STOP");
+                telemetry.addLine("Conflicting tags - stopped");
 
-            } else if (leftTagFound) {
+            } else if (leftFound) {
 
                 // Strafe left.
                 frontLeft.setPower(-STRAFE_POWER);
@@ -157,9 +159,9 @@ public class TEST_SOL_AUTO extends LinearOpMode {
                 backLeft.setPower(STRAFE_POWER);
                 backRight.setPower(-STRAFE_POWER);
 
-                telemetry.addLine("Tags 43/44: STRAFE LEFT");
+                telemetry.addLine("Tag 43/44 - STRAFE LEFT");
 
-            } else if (rightTagFound) {
+            } else if (rightFound) {
 
                 // Strafe right.
                 frontLeft.setPower(STRAFE_POWER);
@@ -167,12 +169,12 @@ public class TEST_SOL_AUTO extends LinearOpMode {
                 backLeft.setPower(-STRAFE_POWER);
                 backRight.setPower(STRAFE_POWER);
 
-                telemetry.addLine("Tags 45/46: STRAFE RIGHT");
+                telemetry.addLine("Tag 45/46 - STRAFE RIGHT");
 
             } else {
 
                 stopRobot();
-                telemetry.addLine("No matching tag: STOP");
+                telemetry.addLine("No target tag - stopped");
             }
 
             telemetry.update();
@@ -182,6 +184,7 @@ public class TEST_SOL_AUTO extends LinearOpMode {
         limelight.stop();
     }
 
+    // Move the wheels by relative encoder distances.
     private boolean moveRobot(
             double flInches,
             double frInches,
@@ -190,10 +193,13 @@ public class TEST_SOL_AUTO extends LinearOpMode {
 
         int flTarget = frontLeft.getCurrentPosition()
                 + (int) (flInches * TICKS_PER_INCH);
+
         int frTarget = frontRight.getCurrentPosition()
                 + (int) (frInches * TICKS_PER_INCH);
+
         int blTarget = backLeft.getCurrentPosition()
                 + (int) (blInches * TICKS_PER_INCH);
+
         int brTarget = backRight.getCurrentPosition()
                 + (int) (brInches * TICKS_PER_INCH);
 
@@ -203,7 +209,11 @@ public class TEST_SOL_AUTO extends LinearOpMode {
         backRight.setTargetPosition(brTarget);
 
         setDriveMode(DcMotor.RunMode.RUN_TO_POSITION);
-        setDrivePower(SQUARE_POWER);
+
+        frontLeft.setPower(DRIVE_POWER);
+        frontRight.setPower(DRIVE_POWER);
+        backLeft.setPower(DRIVE_POWER);
+        backRight.setPower(DRIVE_POWER);
 
         ElapsedTime timer = new ElapsedTime();
 
@@ -214,13 +224,20 @@ public class TEST_SOL_AUTO extends LinearOpMode {
                 || backLeft.isBusy()
                 || backRight.isBusy())) {
 
-            telemetry.addData("Front Left", "%d / %d",
+            telemetry.addData("Front Left",
+                    "%d / %d",
                     frontLeft.getCurrentPosition(), flTarget);
-            telemetry.addData("Front Right", "%d / %d",
+
+            telemetry.addData("Front Right",
+                    "%d / %d",
                     frontRight.getCurrentPosition(), frTarget);
-            telemetry.addData("Back Left", "%d / %d",
+
+            telemetry.addData("Back Left",
+                    "%d / %d",
                     backLeft.getCurrentPosition(), blTarget);
-            telemetry.addData("Back Right", "%d / %d",
+
+            telemetry.addData("Back Right",
+                    "%d / %d",
                     backRight.getCurrentPosition(), brTarget);
 
             telemetry.update();
@@ -229,7 +246,13 @@ public class TEST_SOL_AUTO extends LinearOpMode {
         stopRobot();
         setDriveMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        if (!opModeIsActive() || timer.seconds() >= MOVE_TIMEOUT) {
+        if (!opModeIsActive()
+                || timer.seconds() >= MOVE_TIMEOUT) {
+
+            telemetry.addLine(
+                    "Movement stopped or timed out");
+
+            telemetry.update();
             return false;
         }
 
@@ -243,14 +266,10 @@ public class TEST_SOL_AUTO extends LinearOpMode {
         backRight.setMode(mode);
     }
 
-    private void setDrivePower(double power) {
-        frontLeft.setPower(power);
-        frontRight.setPower(power);
-        backLeft.setPower(power);
-        backRight.setPower(power);
-    }
-
     private void stopRobot() {
-        setDrivePower(0);
+        frontLeft.setPower(0);
+        frontRight.setPower(0);
+        backLeft.setPower(0);
+        backRight.setPower(0);
     }
 }
