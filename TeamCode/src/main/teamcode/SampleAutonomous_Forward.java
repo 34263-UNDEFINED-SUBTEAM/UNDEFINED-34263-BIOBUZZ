@@ -1,20 +1,8 @@
-/* Created by Phil Malone. 2023.
-    This class illustrates my simplified Odometry Strategy.
-    It implements basic straight line motions but with heading and drift controls to limit drift.
-    See the readme for a link to a video tutorial explaining the operation and limitations of the code.
- */
 
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-
-/*
- * This OpMode illustrates an autonomous opmode using simple Odometry
- * All robot functions are performed by an external "Robot" class that manages all hardware interactions.
- * Pure Drive or Strafe motions are maintained using two Odometry Wheels.
- * The IMU gyro is used to stabilize the heading during all motions
- */
 
 @Autonomous(name="Sample Autonomous", group = "Mr. Phil")
 public class SampleAutonomous_Forward extends LinearOpMode
@@ -39,7 +27,7 @@ public class SampleAutonomous_Forward extends LinearOpMode
         {
             // Note, this example takes more than 30 seconds to execute, so turn OFF the auto timer.
 
-            // Drive a large rectangle, turning at each corner
+            // Drive forward
             robot.drive(  84, 0.60, 0.25);
            
         }
