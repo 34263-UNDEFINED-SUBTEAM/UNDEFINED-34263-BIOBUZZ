@@ -1,7 +1,6 @@
-package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.hardware.limelightvision.LLResult;
-import com.qualcomm.hardware.limelightvision.Limelight3A;
+        package org.firstinspires.ftc.teamcode;
+
 import com.qualcomm.hardware.sparkfun.SparkFunOTOS;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -19,12 +18,13 @@ public class TEST_SOL_AUTO extends LinearOpMode {
     private DcMotor backRight;
 
     private SparkFunOTOS otos;
-    private Limelight3A limelight;
 
-    private static final double SIDE = 24.0;
-    private static final double TOLERANCE = 1.0;
+    private static final double SIDE_LENGTH = 24.0;
     private static final double MAX_POWER = 0.45;
     private static final double MIN_POWER = 0.12;
+    private static final double POSITION_TOLERANCE = 1.0;
+    private static final double HEADING_TOLERANCE = 3.0;
+    private static final double HEADING_KP = 0.012;
 
     @Override
     public void runOpMode() {
@@ -51,28 +51,30 @@ public class TEST_SOL_AUTO extends LinearOpMode {
 
         otos.setLinearUnit(DistanceUnit.INCH);
         otos.setAngularUnit(AngleUnit.DEGREES);
+        otos.setOffset(new SparkFunOTOS.Pose2D(0, 0, 0));
+        otos.setLinearScalar(1.0);
+        otos.setAngularScalar(1.0);
+
+        telemetry.addLine("Keep robot still during calibration");
+        telemetry.update();
+
         otos.calibrateImu();
         otos.resetTracking();
         otos.setPosition(new SparkFunOTOS.Pose2D(0, 0, 0));
 
-        limelight = hardwareMap.get(Limelight3A.class, "limelight");
-        limelight.pipelineSwitch(0);
-        limelight.start();
-
-        telemetry.addLine("Ready to run");
+        telemetry.addLine("Ready");
         telemetry.update();
 
         waitForStart();
 
         if (opModeIsActive()) {
-            moveTo(SIDE, 0);
-            moveTo(SIDE, SIDE);
-            moveTo(0, SIDE);
+            moveTo(SIDE_LENGTH, 0);
+            moveTo(SIDE_LENGTH, SIDE_LENGTH);
+            moveTo(0, SIDE_LENGTH);
             moveTo(0, 0);
         }
 
         stopMotors();
-        limelight.stop();
     }
 
     private void moveTo(double targetX, double targetY) {
@@ -86,24 +88,28 @@ public class TEST_SOL_AUTO extends LinearOpMode {
             double errorX = targetX - pose.x;
             double errorY = targetY - pose.y;
             double distance = Math.hypot(errorX, errorY);
+            double headingError = wrapAngle(-pose.h);
 
-            if (distance < TOLERANCE) {
+            if (distance < POSITION_TOLERANCE
+                    && Math.abs(headingError) < HEADING_TOLERANCE) {
                 stopMotors();
                 return;
             }
 
-            double angle = Math.toRadians(pose.h);
+            double heading = Math.toRadians(pose.h);
 
             double forward =
-                    errorX * Math.cos(angle)
-                            + errorY * Math.sin(angle);
+                    errorX * Math.cos(heading)
+                            + errorY * Math.sin(heading);
 
             double strafe =
-                    -errorX * Math.sin(angle)
-                            + errorY * Math.cos(angle);
+                    -errorX * Math.sin(heading)
+                            + errorY * Math.cos(heading);
 
-            forward /= distance;
-            strafe /= distance;
+            if (distance > 0.001) {
+                forward /= distance;
+                strafe /= distance;
+            }
 
             double power = Math.min(
                     MAX_POWER,
@@ -113,10 +119,15 @@ public class TEST_SOL_AUTO extends LinearOpMode {
             forward *= power;
             strafe *= power;
 
-            double fl = forward + strafe;
-            double fr = forward - strafe;
-            double bl = forward - strafe;
-            double br = forward + strafe;
+            double turn = Math.max(
+                    -0.20,
+                    Math.min(0.20, headingError * HEADING_KP)
+            );
+
+            double fl = forward + strafe + turn;
+            double fr = forward - strafe - turn;
+            double bl = forward - strafe + turn;
+            double br = forward + strafe - turn;
 
             double max = Math.max(
                     1.0,
@@ -131,24 +142,24 @@ public class TEST_SOL_AUTO extends LinearOpMode {
             backLeft.setPower(bl / max);
             backRight.setPower(br / max);
 
-            LLResult result = limelight.getLatestResult();
-
-            telemetry.addData("OTOS X", "%.2f", pose.x);
-            telemetry.addData("OTOS Y", "%.2f", pose.y);
+            telemetry.addData("X", "%.2f", pose.x);
+            telemetry.addData("Y", "%.2f", pose.y);
             telemetry.addData("Heading", "%.1f", pose.h);
             telemetry.addData("Distance remaining", "%.2f", distance);
-
-            if (result != null && result.isValid()) {
-                telemetry.addData("Limelight", "Target found");
-                telemetry.addData("Target X", "%.2f", result.getTx());
-            } else {
-                telemetry.addData("Limelight", "No target");
-            }
-
+            telemetry.addData("Heading error", "%.1f", headingError);
             telemetry.update();
         }
 
         stopMotors();
+
+        telemetry.addLine("Movement timed out");
+        telemetry.update();
+    }
+
+    private double wrapAngle(double angle) {
+        while (angle > 180) angle -= 360;
+        while (angle < -180) angle += 360;
+        return angle;
     }
 
     private void stopMotors() {
