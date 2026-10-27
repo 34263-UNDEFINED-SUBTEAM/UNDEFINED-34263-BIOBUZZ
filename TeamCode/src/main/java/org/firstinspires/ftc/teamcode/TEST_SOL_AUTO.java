@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Autonomous(name = "TEST SOL AUTO", group = "Autonomous")
 public class TEST_SOL_AUTO extends LinearOpMode {
@@ -14,30 +15,24 @@ public class TEST_SOL_AUTO extends LinearOpMode {
     private DcMotor backLeft;
     private DcMotor backRight;
 
-    // Robot dimensions and encoder settings.
-    private static final double WHEEL_DIAMETER_INCHES = 4.0;
-    private static final double WHEEL_CIRCUMFERENCE =
-            Math.PI * WHEEL_DIAMETER_INCHES;
+    private static final double WHEEL_DIAMETER = 4.0;
+    private static final double TICKS_PER_REV = 537.7;
+    private static final double GEAR_RATIO = 1.0;
 
-    // Starting estimate for a goBILDA 5202 19.2:1 motor.
-    // Verify this value for your exact motor.
-    private static final double TICKS_PER_MOTOR_REV = 537.7;
+    private static final double SIDE_INCHES = 48.0;
 
-    // Change this if your motor's actual gear ratio differs.
-    private static final double DRIVE_GEAR_RATIO = 1.0;
+    // Keep power low while testing.
+    private static final double DRIVE_POWER = 0.30;
+    private static final double STRAFE_POWER = 0.22;
 
-    // Adjust after testing; mecanum strafing typically needs calibration.
+    // Calibrate this after testing the actual lateral distance.
     private static final double STRAFE_FACTOR = 1.15;
 
-    private static final double SIDE_LENGTH_INCHES = 48.0;
-    private static final double DRIVE_POWER = 0.35;
-    private static final double STRAFE_POWER = 0.30;
-    private static final double MOVE_TIMEOUT_SECONDS = 8.0;
+    private static final double MOVE_TIMEOUT = 10.0;
 
     @Override
     public void runOpMode() {
 
-        // Hardware names must match Robot Configuration.
         frontLeft = hardwareMap.get(
                 DcMotor.class, "front_left_drive");
         frontRight = hardwareMap.get(
@@ -47,32 +42,20 @@ public class TEST_SOL_AUTO extends LinearOpMode {
         backRight = hardwareMap.get(
                 DcMotor.class, "back_right_drive");
 
-        // Standard mecanum motor directions.
+        // Standard mecanum direction setup.
         frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
         backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
         frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
         backRight.setDirection(DcMotorSimple.Direction.FORWARD);
 
-        // Brake when power is zero.
-        frontLeft.setZeroPowerBehavior(
-                DcMotor.ZeroPowerBehavior.BRAKE);
-        frontRight.setZeroPowerBehavior(
-                DcMotor.ZeroPowerBehavior.BRAKE);
-        backLeft.setZeroPowerBehavior(
-                DcMotor.ZeroPowerBehavior.BRAKE);
-        backRight.setZeroPowerBehavior(
-                DcMotor.ZeroPowerBehavior.BRAKE);
+        setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        stopDrive();
 
-        resetDriveEncoders();
+        resetEncoders();
 
-        telemetry.addLine("TEST_SOL_AUTO");
-        telemetry.addLine("Encoder-only 48-inch square");
-        telemetry.addData("Wheel diameter", "%.1f in",
-                WHEEL_DIAMETER_INCHES);
-        telemetry.addData("Ticks per motor revolution", "%.1f",
-                TICKS_PER_MOTOR_REV);
-        telemetry.addLine("Verify gear ratio before running.");
-        telemetry.addLine("Place robot in an open test area.");
+        telemetry.addLine("TEST SOL AUTO");
+        telemetry.addLine("Encoder-based 4 ft square");
+        telemetry.addLine("Check motor directions before starting.");
         telemetry.update();
 
         waitForStart();
@@ -82,76 +65,80 @@ public class TEST_SOL_AUTO extends LinearOpMode {
             return;
         }
 
-        // Side 1: forward 48 inches.
-        if (!driveStraight(SIDE_LENGTH_INCHES, DRIVE_POWER)) {
-            stopDrive();
+        // 1. Forward 4 feet.
+        if (!driveStraight(SIDE_INCHES)) {
+            finish();
             return;
         }
 
-        // Side 2: strafe right 48 inches.
-        if (!strafe(SIDE_LENGTH_INCHES, STRAFE_POWER)) {
-            stopDrive();
+        // 2. Strafe right 4 feet.
+        if (!strafe(SIDE_INCHES)) {
+            finish();
             return;
         }
 
-        // Side 3: backward 48 inches.
-        if (!driveStraight(-SIDE_LENGTH_INCHES, DRIVE_POWER)) {
-            stopDrive();
+        // 3. Backward 4 feet.
+        if (!driveStraight(-SIDE_INCHES)) {
+            finish();
             return;
         }
 
-        // Side 4: strafe left 48 inches.
-        if (!strafe(-SIDE_LENGTH_INCHES, STRAFE_POWER)) {
-            stopDrive();
+        // 4. Strafe left 4 feet to the starting point.
+        if (!strafe(-SIDE_INCHES)) {
+            finish();
             return;
         }
 
-        stopDrive();
+        finish();
 
         telemetry.addLine("SQUARE COMPLETE");
-        telemetry.addLine("Encoder-based movement finished.");
         telemetry.update();
     }
 
-    private boolean driveStraight(double inches, double power) {
+    private boolean driveStraight(double inches) {
 
         int ticks = inchesToTicks(inches);
 
-        setTargetPositions(
-                ticks, ticks, ticks, ticks);
+        // All four wheels move the same distance.
+        setTargets(ticks, ticks, ticks, ticks);
 
-        return runToPosition(
-                power, power, power, power,
-                "Driving straight");
+        return runMovement(
+                DRIVE_POWER,
+                inches > 0 ? "Forward" : "Backward");
     }
 
-    private boolean strafe(double inches, double power) {
+    private boolean strafe(double inches) {
 
-        int ticks = inchesToTicks(
-                inches * STRAFE_FACTOR);
+        int ticks = inchesToTicks(inches * STRAFE_FACTOR);
 
-        // Mecanum strafe pattern.
-        setTargetPositions(
-                ticks, -ticks, -ticks, ticks);
+        /*
+         * Mecanum diagonal pattern:
+         *
+         * Front Left:  +
+         * Front Right: -
+         * Back Left:   -
+         * Back Right:  +
+         *
+         * Reverse every sign to strafe the other way.
+         */
+        setTargets(ticks, -ticks, -ticks, ticks);
 
-        return runToPosition(
-                power, power, power, power,
+        return runMovement(
+                STRAFE_POWER,
                 inches > 0 ? "Strafing right" : "Strafing left");
     }
 
     private int inchesToTicks(double inches) {
 
-        double wheelRevolutions =
-                inches / WHEEL_CIRCUMFERENCE;
-
-        double motorRevolutions =
-                wheelRevolutions * DRIVE_GEAR_RATIO;
+        double circumference = Math.PI * WHEEL_DIAMETER;
 
         return (int) Math.round(
-                motorRevolutions * TICKS_PER_MOTOR_REV);
+                inches / circumference
+                        * TICKS_PER_REV
+                        * GEAR_RATIO);
     }
 
-    private void setTargetPositions(
+    private void setTargets(
             int fl, int fr, int bl, int br) {
 
         frontLeft.setTargetPosition(
@@ -169,33 +156,35 @@ public class TEST_SOL_AUTO extends LinearOpMode {
         backRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
 
-    private boolean runToPosition(
-            double flPower, double frPower,
-            double blPower, double brPower,
-            String movementName) {
+    private boolean runMovement(double power, String movement) {
 
-        frontLeft.setPower(Math.abs(flPower));
-        frontRight.setPower(Math.abs(frPower));
-        backLeft.setPower(Math.abs(blPower));
-        backRight.setPower(Math.abs(brPower));
+        // Every motor receives the same power magnitude.
+        frontLeft.setPower(power);
+        frontRight.setPower(power);
+        backLeft.setPower(power);
+        backRight.setPower(power);
 
-        long startTime = System.nanoTime();
+        ElapsedTime timer = new ElapsedTime();
 
         while (opModeIsActive()
                 && anyMotorBusy()
-                && (System.nanoTime() - startTime)
-                / 1_000_000_000.0 < MOVE_TIMEOUT_SECONDS) {
+                && timer.seconds() < MOVE_TIMEOUT) {
 
-            telemetry.addData("Movement", movementName);
+            telemetry.addData("Movement", movement);
+            telemetry.addData("Time", "%.1f s", timer.seconds());
+
             telemetry.addData("Front Left", "%d / %d",
                     frontLeft.getCurrentPosition(),
                     frontLeft.getTargetPosition());
+
             telemetry.addData("Front Right", "%d / %d",
                     frontRight.getCurrentPosition(),
                     frontRight.getTargetPosition());
+
             telemetry.addData("Back Left", "%d / %d",
                     backLeft.getCurrentPosition(),
                     backLeft.getTargetPosition());
+
             telemetry.addData("Back Right", "%d / %d",
                     backRight.getCurrentPosition(),
                     backRight.getTargetPosition());
@@ -204,18 +193,15 @@ public class TEST_SOL_AUTO extends LinearOpMode {
             idle();
         }
 
-        boolean completed = opModeIsActive()
-                && !anyMotorBusy();
+        boolean completed = opModeIsActive() && !anyMotorBusy();
 
         stopDrive();
 
         if (!completed && opModeIsActive()) {
-            telemetry.addLine(
-                    "TIMEOUT: Movement did not finish.");
+            telemetry.addLine("TIMEOUT: Stopping movement.");
             telemetry.update();
         }
 
-        // Return to open-loop mode for the next movement.
         setDriveMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         return completed;
@@ -228,15 +214,11 @@ public class TEST_SOL_AUTO extends LinearOpMode {
                 || backRight.isBusy();
     }
 
-    private void resetDriveEncoders() {
+    private void resetEncoders() {
 
         setDrivePower(0);
 
-        frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        backLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        backRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
+        setDriveMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         setDriveMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
@@ -245,6 +227,15 @@ public class TEST_SOL_AUTO extends LinearOpMode {
         frontRight.setMode(mode);
         backLeft.setMode(mode);
         backRight.setMode(mode);
+    }
+
+    private void setZeroPowerBehavior(
+            DcMotor.ZeroPowerBehavior behavior) {
+
+        frontLeft.setZeroPowerBehavior(behavior);
+        frontRight.setZeroPowerBehavior(behavior);
+        backLeft.setZeroPowerBehavior(behavior);
+        backRight.setZeroPowerBehavior(behavior);
     }
 
     private void setDrivePower(double power) {
@@ -256,6 +247,10 @@ public class TEST_SOL_AUTO extends LinearOpMode {
 
     private void stopDrive() {
         setDrivePower(0);
+    }
+
+    private void finish() {
+        stopDrive();
         setDriveMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 }
