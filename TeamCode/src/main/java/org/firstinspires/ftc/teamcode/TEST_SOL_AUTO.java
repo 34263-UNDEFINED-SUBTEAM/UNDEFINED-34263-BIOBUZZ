@@ -54,54 +54,58 @@ public class TEST_SOL_AUTO extends LinearOpMode {
         setDriveMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         stopRobot();
 
-        // Find the OTOS by type, not by configured name.
+        // Find the OTOS by device type, regardless of its configured name.
         List<SparkFunOTOS> otosDevices =
                 hardwareMap.getAll(SparkFunOTOS.class);
 
         if (otosDevices.isEmpty()) {
             telemetry.addLine("ERROR: No SparkFun OTOS found.");
-            telemetry.addLine(
-                    "Check Robot Configuration and OTOS device type.");
+            telemetry.addLine("Check the OTOS device type in Robot Configuration.");
             telemetry.update();
             return;
         }
 
         if (otosDevices.size() > 1) {
-            telemetry.addLine(
-                    "ERROR: More than one SparkFun OTOS found.");
-            telemetry.addLine(
-                    "Configure only one OTOS for this program.");
+            telemetry.addLine("ERROR: Multiple OTOS devices found.");
+            telemetry.addLine("This program expects one OTOS.");
             telemetry.update();
             return;
         }
 
         otos = otosDevices.get(0);
 
+        // Configure OTOS units and reset its starting position.
         otos.setLinearUnit(DistanceUnit.INCH);
         otos.setAngularUnit(AngleUnit.DEGREES);
 
-        telemetry.addLine("Keep robot still.");
-        telemetry.addLine("Calibrating OTOS IMU...");
+        telemetry.addLine("Keep robot still while OTOS calibrates.");
         telemetry.update();
 
         otos.calibrateImu();
         otos.resetTracking();
         otos.setPosition(new SparkFunOTOS.Pose2D(0, 0, 0));
 
-        telemetry.addLine("OTOS initialized.");
+        // Initialize Limelight before starting the OpMode.
+        limelight = hardwareMap.get(
+                Limelight3A.class, "limelight");
+
+        limelight.pipelineSwitch(0);
+
+        telemetry.addLine("OTOS ready.");
+        telemetry.addLine("Limelight ready.");
         telemetry.addLine("Ready to start.");
         telemetry.update();
 
         waitForStart();
 
         if (!opModeIsActive()) {
-            stopRobot();
+            finishSafely();
             return;
         }
 
-        // PHASE 1: Drive a 4 ft by 4 ft square.
+        // PHASE 1: Drive a 48-inch square.
         // Assumes OTOS X is lateral and Y is forward.
-        // Verify these directions on your robot before running.
+        // Check the direction readings before a full-speed run.
 
         if (!driveTo(-SIDE_LENGTH, 0)) {
             finishSafely();
@@ -125,16 +129,12 @@ public class TEST_SOL_AUTO extends LinearOpMode {
 
         stopRobot();
 
-        // PHASE 2: Use Limelight AprilTags.
-        telemetry.addLine("Square complete.");
-        telemetry.addLine("Starting Limelight...");
-        telemetry.update();
-
-        limelight = hardwareMap.get(
-                Limelight3A.class, "limelight");
-
-        limelight.pipelineSwitch(0);
+        // PHASE 2: Detect AprilTags and strafe.
         limelight.start();
+
+        telemetry.addLine("Square complete.");
+        telemetry.addLine("Limelight tracking started.");
+        telemetry.update();
 
         while (opModeIsActive()) {
 
@@ -151,6 +151,7 @@ public class TEST_SOL_AUTO extends LinearOpMode {
                 for (LLResultTypes.FiducialResult tag : tags) {
 
                     int id = tag.getFiducialId();
+
                     telemetry.addData("AprilTag ID", id);
 
                     if (id == 43 || id == 44) {
@@ -164,10 +165,12 @@ public class TEST_SOL_AUTO extends LinearOpMode {
             }
 
             if (leftFound && rightFound) {
+
                 stopRobot();
                 telemetry.addLine("Conflicting tags: STOP");
 
             } else if (leftFound) {
+
                 // Strafe left.
                 frontLeft.setPower(-STRAFE_POWER);
                 frontRight.setPower(STRAFE_POWER);
@@ -177,6 +180,7 @@ public class TEST_SOL_AUTO extends LinearOpMode {
                 telemetry.addLine("Tags 43/44: STRAFE LEFT");
 
             } else if (rightFound) {
+
                 // Strafe right.
                 frontLeft.setPower(STRAFE_POWER);
                 frontRight.setPower(-STRAFE_POWER);
@@ -186,6 +190,7 @@ public class TEST_SOL_AUTO extends LinearOpMode {
                 telemetry.addLine("Tags 45/46: STRAFE RIGHT");
 
             } else {
+
                 stopRobot();
                 telemetry.addLine("No matching tag: STOP");
             }
@@ -197,6 +202,7 @@ public class TEST_SOL_AUTO extends LinearOpMode {
             telemetry.addData("OTOS Heading", "%.1f", pos.h);
 
             telemetry.update();
+            idle();
         }
 
         finishSafely();
@@ -221,6 +227,7 @@ public class TEST_SOL_AUTO extends LinearOpMode {
 
             if (Math.abs(errorX) <= POSITION_TOLERANCE
                     && Math.abs(errorY) <= POSITION_TOLERANCE) {
+
                 stopRobot();
                 telemetry.update();
                 return true;
@@ -228,6 +235,7 @@ public class TEST_SOL_AUTO extends LinearOpMode {
 
             double strafe = limit(
                     -errorX * 0.035, STRAFE_POWER);
+
             double forward = limit(
                     errorY * 0.035, DRIVE_POWER);
 
@@ -241,6 +249,7 @@ public class TEST_SOL_AUTO extends LinearOpMode {
                 forward = Math.signum(errorY) * 0.12;
             }
 
+            // Mecanum drive mixing.
             double fl = forward - strafe;
             double fr = forward + strafe;
             double bl = forward + strafe;
@@ -256,9 +265,11 @@ public class TEST_SOL_AUTO extends LinearOpMode {
             backRight.setPower(br / max);
 
             telemetry.update();
+            idle();
         }
 
         stopRobot();
+
         telemetry.addLine("Movement timed out. Robot stopped.");
         telemetry.update();
 
