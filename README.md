@@ -7,5 +7,6 @@ Everytime you want to push code, you should click the button for pushing code.
 ## Presentation
 presentation here
 
-## siddarth is so cool
-and awesome everybody loves siddy :D
+## Programming Error Documentation
+
+Siddarth Palvai: SparkFunOTOS and sensor.otos is not defined
