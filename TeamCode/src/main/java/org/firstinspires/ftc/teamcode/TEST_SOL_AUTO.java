@@ -1,3 +1,4 @@
+
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.limelightvision.LLResult;
@@ -35,7 +36,7 @@ public class TEST_SOL_AUTO extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
 
-        // Drive motors: names must match Robot Configuration.
+        // Initialize drive motors.
         frontLeft = hardwareMap.get(
                 DcMotor.class, "front_left_drive");
         frontRight = hardwareMap.get(
@@ -53,23 +54,42 @@ public class TEST_SOL_AUTO extends LinearOpMode {
         setDriveMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         stopRobot();
 
-        // OTOS: class and hardware name are spelled exactly.
-        otos = hardwareMap.get(
-                SparkFunOTOS.class, "sensor_otos");
+        // Find the OTOS by type, not by configured name.
+        List<SparkFunOTOS> otosDevices =
+                hardwareMap.getAll(SparkFunOTOS.class);
+
+        if (otosDevices.isEmpty()) {
+            telemetry.addLine("ERROR: No SparkFun OTOS found.");
+            telemetry.addLine(
+                    "Check Robot Configuration and OTOS device type.");
+            telemetry.update();
+            return;
+        }
+
+        if (otosDevices.size() > 1) {
+            telemetry.addLine(
+                    "ERROR: More than one SparkFun OTOS found.");
+            telemetry.addLine(
+                    "Configure only one OTOS for this program.");
+            telemetry.update();
+            return;
+        }
+
+        otos = otosDevices.get(0);
 
         otos.setLinearUnit(DistanceUnit.INCH);
         otos.setAngularUnit(AngleUnit.DEGREES);
 
-        telemetry.addLine("Keep robot still: calibrating OTOS");
+        telemetry.addLine("Keep robot still.");
+        telemetry.addLine("Calibrating OTOS IMU...");
         telemetry.update();
 
         otos.calibrateImu();
         otos.resetTracking();
-
         otos.setPosition(new SparkFunOTOS.Pose2D(0, 0, 0));
 
-        telemetry.addLine("OTOS ready");
-        telemetry.addLine("Square first, Limelight second");
+        telemetry.addLine("OTOS initialized.");
+        telemetry.addLine("Ready to start.");
         telemetry.update();
 
         waitForStart();
@@ -79,31 +99,25 @@ public class TEST_SOL_AUTO extends LinearOpMode {
             return;
         }
 
-        // ==========================================
-        // PHASE 1: 4 FT x 4 FT SQUARE
-        // OTOS convention: X = lateral, Y = forward.
-        // Assumes zero heading and standard sensor mounting.
-        // ==========================================
+        // PHASE 1: Drive a 4 ft by 4 ft square.
+        // Assumes OTOS X is lateral and Y is forward.
+        // Verify these directions on your robot before running.
 
-        // 1. Strafe left 48 inches.
         if (!driveTo(-SIDE_LENGTH, 0)) {
             finishSafely();
             return;
         }
 
-        // 2. Drive forward 48 inches.
         if (!driveTo(-SIDE_LENGTH, SIDE_LENGTH)) {
             finishSafely();
             return;
         }
 
-        // 3. Strafe right 48 inches.
         if (!driveTo(0, SIDE_LENGTH)) {
             finishSafely();
             return;
         }
 
-        // 4. Drive backward 48 inches.
         if (!driveTo(0, 0)) {
             finishSafely();
             return;
@@ -111,12 +125,9 @@ public class TEST_SOL_AUTO extends LinearOpMode {
 
         stopRobot();
 
-        // ==========================================
-        // PHASE 2: LIMELIGHT APRILTAG STRAFING
-        // ==========================================
-
-        telemetry.addLine("Square complete");
-        telemetry.addLine("Starting Limelight");
+        // PHASE 2: Use Limelight AprilTags.
+        telemetry.addLine("Square complete.");
+        telemetry.addLine("Starting Limelight...");
         telemetry.update();
 
         limelight = hardwareMap.get(
@@ -140,7 +151,6 @@ public class TEST_SOL_AUTO extends LinearOpMode {
                 for (LLResultTypes.FiducialResult tag : tags) {
 
                     int id = tag.getFiducialId();
-
                     telemetry.addData("AprilTag ID", id);
 
                     if (id == 43 || id == 44) {
@@ -154,12 +164,10 @@ public class TEST_SOL_AUTO extends LinearOpMode {
             }
 
             if (leftFound && rightFound) {
-
                 stopRobot();
-                telemetry.addLine("Conflicting tags - STOP");
+                telemetry.addLine("Conflicting tags: STOP");
 
             } else if (leftFound) {
-
                 // Strafe left.
                 frontLeft.setPower(-STRAFE_POWER);
                 frontRight.setPower(STRAFE_POWER);
@@ -169,7 +177,6 @@ public class TEST_SOL_AUTO extends LinearOpMode {
                 telemetry.addLine("Tags 43/44: STRAFE LEFT");
 
             } else if (rightFound) {
-
                 // Strafe right.
                 frontLeft.setPower(STRAFE_POWER);
                 frontRight.setPower(-STRAFE_POWER);
@@ -179,9 +186,8 @@ public class TEST_SOL_AUTO extends LinearOpMode {
                 telemetry.addLine("Tags 45/46: STRAFE RIGHT");
 
             } else {
-
                 stopRobot();
-                telemetry.addLine("No matching tag - STOP");
+                telemetry.addLine("No matching tag: STOP");
             }
 
             SparkFunOTOS.Pose2D pos = otos.getPosition();
@@ -196,7 +202,6 @@ public class TEST_SOL_AUTO extends LinearOpMode {
         finishSafely();
     }
 
-    // Drives toward an OTOS X/Y target.
     private boolean driveTo(double targetX, double targetY) {
 
         ElapsedTime timer = new ElapsedTime();
@@ -216,20 +221,19 @@ public class TEST_SOL_AUTO extends LinearOpMode {
 
             if (Math.abs(errorX) <= POSITION_TOLERANCE
                     && Math.abs(errorY) <= POSITION_TOLERANCE) {
-
                 stopRobot();
                 telemetry.update();
                 return true;
             }
 
-            // Positive OTOS X is assumed to mean right.
-            // Positive OTOS Y is assumed to mean forward.
-            double left = limit(-errorX * 0.035, STRAFE_POWER);
-            double forward = limit(errorY * 0.035, DRIVE_POWER);
+            double strafe = limit(
+                    -errorX * 0.035, STRAFE_POWER);
+            double forward = limit(
+                    errorY * 0.035, DRIVE_POWER);
 
             if (Math.abs(errorX) > POSITION_TOLERANCE
-                    && Math.abs(left) < 0.12) {
-                left = Math.signum(-errorX) * 0.12;
+                    && Math.abs(strafe) < 0.12) {
+                strafe = Math.signum(-errorX) * 0.12;
             }
 
             if (Math.abs(errorY) > POSITION_TOLERANCE
@@ -237,11 +241,10 @@ public class TEST_SOL_AUTO extends LinearOpMode {
                 forward = Math.signum(errorY) * 0.12;
             }
 
-            // Mecanum power mix.
-            double fl = forward - left;
-            double fr = forward + left;
-            double bl = forward + left;
-            double br = forward - left;
+            double fl = forward - strafe;
+            double fr = forward + strafe;
+            double bl = forward + strafe;
+            double br = forward - strafe;
 
             double max = Math.max(1.0, Math.max(
                     Math.max(Math.abs(fl), Math.abs(fr)),
@@ -256,8 +259,7 @@ public class TEST_SOL_AUTO extends LinearOpMode {
         }
 
         stopRobot();
-
-        telemetry.addLine("Movement timed out - stopping");
+        telemetry.addLine("Movement timed out. Robot stopped.");
         telemetry.update();
 
         return false;
