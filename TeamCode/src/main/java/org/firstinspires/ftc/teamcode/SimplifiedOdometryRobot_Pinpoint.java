@@ -31,19 +31,19 @@ public class SimplifiedOdometryRobot_Pinpoint {
 
     private static final double DRIVE_GAIN          = 0.03;    // Strength of axial position control
     private static final double DRIVE_ACCEL         = 2.0;     // Acceleration limit.  Percent Power change per second.  1.0 = 0-100% power in 1 sec.
-    private static final double DRIVE_TOLERANCE     = 0.5;     // Controller is is "inPosition" if position error is < +/- this amount
+    private static final double DRIVE_TOLERANCE     = 0.5;     // Controller is  "inPosition" if position error is < +/- this amount
     private static final double DRIVE_DEADBAND      = 0.2;     // Error less than this causes zero output.  Must be smaller than DRIVE_TOLERANCE
     private static final double DRIVE_MAX_AUTO      = 0.6;     // "default" Maximum Axial power limit during autonomous
 
     private static final double STRAFE_GAIN         = 0.03;    // Strength of lateral position control
     private static final double STRAFE_ACCEL        = 1.5;     // Acceleration limit.  Percent Power change per second.  1.0 = 0-100% power in 1 sec.
-    private static final double STRAFE_TOLERANCE    = 0.5;     // Controller is is "inPosition" if position error is < +/- this amount
+    private static final double STRAFE_TOLERANCE    = 0.5;     // Controller is "inPosition" if position error is < +/- this amount
     private static final double STRAFE_DEADBAND     = 0.2;     // Error less than this causes zero output.  Must be smaller than DRIVE_TOLERANCE
     private static final double STRAFE_MAX_AUTO     = 0.6;     // "default" Maximum Lateral power limit during autonomous
 
     private static final double YAW_GAIN            = 0.018;    // Strength of Yaw position control
     private static final double YAW_ACCEL           = 3.0;     // Acceleration limit.  Percent Power change per second.  1.0 = 0-100% power in 1 sec.
-    private static final double YAW_TOLERANCE       = 1.0;     // Controller is is "inPosition" if position error is < +/- this amount
+    private static final double YAW_TOLERANCE       = 1.0;     // Controller is "inPosition" if position error is < +/- this amount
     private static final double YAW_DEADBAND        = 0.25;    // Error less than this causes zero output.  Must be smaller than DRIVE_TOLERANCE
     private static final double YAW_MAX_AUTO        = 0.6;     // "default" Maximum Yaw power limit during autonomous
 
@@ -53,9 +53,9 @@ public class SimplifiedOdometryRobot_Pinpoint {
     public double heading           = 0; // Latest Robot heading from IMU
 
     // Establish a proportional controller for each axis to calculate the required power to achieve a setpoint.
-    public ProportionalControl driveController     = new ProportionalControl(DRIVE_GAIN, DRIVE_ACCEL, DRIVE_MAX_AUTO, DRIVE_TOLERANCE, DRIVE_DEADBAND, false);
-    public ProportionalControl strafeController    = new ProportionalControl(STRAFE_GAIN, STRAFE_ACCEL, STRAFE_MAX_AUTO, STRAFE_TOLERANCE, STRAFE_DEADBAND, false);
-    public ProportionalControl yawController       = new ProportionalControl(YAW_GAIN, YAW_ACCEL, YAW_MAX_AUTO, YAW_TOLERANCE,YAW_DEADBAND, true);
+    public ProportionalControl_Pinpoint driveController     = new ProportionalControl_Pinpoint(DRIVE_GAIN, DRIVE_ACCEL, DRIVE_MAX_AUTO, DRIVE_TOLERANCE, DRIVE_DEADBAND, false);
+    public ProportionalControl_Pinpoint strafeController    = new ProportionalControl_Pinpoint(STRAFE_GAIN, STRAFE_ACCEL, STRAFE_MAX_AUTO, STRAFE_TOLERANCE, STRAFE_DEADBAND, false);
+    public ProportionalControl_Pinpoint yawController       = new ProportionalControl_Pinpoint(YAW_GAIN, YAW_ACCEL, YAW_MAX_AUTO, YAW_TOLERANCE,YAW_DEADBAND, true);
 
     // ---  Private Members
     private GoBildaPinpointDriver pinpoint;   // Create an instance of the sensor
@@ -165,7 +165,7 @@ public class SimplifiedOdometryRobot_Pinpoint {
     }
 
     /**
-     *   Setup a drive motor with passed parameters.  Ensure encoder is reset.
+     *   Set up a drive motor with passed parameters.  Ensure encoder is reset.
      * @param deviceName  Text name associated with motor in Robot Configuration
      * @param direction   Desired direction to make the wheel run FORWARD with positive power input
      * @return the DcMotor object
@@ -386,7 +386,7 @@ public class SimplifiedOdometryRobot_Pinpoint {
  * to get an axis to the desired setpoint value.
  * It also implements an acceleration limit, and a max power output.
  */
-class ProportionalControl {
+class ProportionalControl_Pinpoint {
     double  lastOutput;
     double  gain;
     double  accelLimit;
@@ -399,7 +399,7 @@ class ProportionalControl {
     boolean inPosition;
     ElapsedTime cycleTime = new ElapsedTime();
 
-    public ProportionalControl(double gain, double accelLimit, double outputLimit, double tolerance, double deadband, boolean circular) {
+    public ProportionalControl_Pinpoint(double gain, double accelLimit, double outputLimit, double tolerance, double deadband, boolean circular) {
         this.gain = gain;
         this.accelLimit = accelLimit;
         this.defaultOutputLimit = outputLimit;
