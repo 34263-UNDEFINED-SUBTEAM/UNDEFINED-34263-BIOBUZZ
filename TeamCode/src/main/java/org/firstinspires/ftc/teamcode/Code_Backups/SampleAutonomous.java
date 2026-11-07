@@ -1,4 +1,6 @@
-package org.firstinspires.ftc.teamcode;
+/* Stole the code from "Test SOL_AUTO" */
+
+package org.firstinspires.ftc.teamcode.Code_Backups;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -7,7 +9,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Autonomous(name = "TEST SOL AUTO", group = "Autonomous")
-public class Auto_LEAVE_and_Park extends LinearOpMode {
+public class SampleAutonomous extends LinearOpMode {
 
     private DcMotor frontLeft;
     private DcMotor frontRight;
