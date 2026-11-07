@@ -87,7 +87,7 @@ public class AVT extends LinearOpMode {
                 telemetry.addLine("Detected Tags:");
 
                 for (AprilTagDetection detection : detections) {
-
+/*
                     if (detection.metadata != null) {
 
                         telemetry.addData(
@@ -100,8 +100,7 @@ public class AVT extends LinearOpMode {
                         telemetry.addData(
                                 "Tag ID " + detection.id,
                                 "Visible (unknown metadata)"
-                        );
-                    }
+                        );*/          }
                 }
             }
 
@@ -110,6 +109,5 @@ public class AVT extends LinearOpMode {
         }
 
         // Shut down camera.
-        visionPortal.close();
+     //   visionPortal.close();
     }
-}
