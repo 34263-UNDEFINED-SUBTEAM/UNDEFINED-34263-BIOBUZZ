@@ -12,7 +12,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagSingleDetection;
 
 import java.util.List;
 
-@TeleOp(name = "AVT", group = "Test")
+//@TeleOp(name = "AVT", group = "Test")
 public class AVT extends LinearOpMode {
 
     private static final String CAMERA_NAME = "Webcam 1";
