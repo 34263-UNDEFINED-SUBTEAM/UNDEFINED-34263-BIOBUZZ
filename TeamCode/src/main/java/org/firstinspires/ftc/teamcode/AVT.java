@@ -1,104 +1,72 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.vision.VisionPortal;
-import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
-import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
-import org.firstinspires.ftc.vision.apriltag.AprilTagSingleDetection;
-
 import java.util.List;
 
-@TeleOp(name = "AVT", group = "Test")
+@TeleOp(name = "AVT - AprilTag Vision Test", group = "Test")
 public class AVT extends LinearOpMode {
 
-    private static final String CAMERA_NAME = "Webcam 1";
+    private Limelight3A limelight;
 
     @Override
     public void runOpMode() {
 
-        AprilTagProcessor aprilTag =
-                new AprilTagProcessor.Builder().build();
+        // Limelight Ethernet device
+        // IP: 179.29.0.1
+        // "limelight" must match its Robot Configuration name.
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
 
-        VisionPortal visionPortal =
-                new VisionPortal.Builder()
-                        .setCamera(
-                                hardwareMap.get(
-                                        WebcamName.class,
-                                        CAMERA_NAME
-                                )
-                        )
-                        .addProcessor(aprilTag)
-                        .build();
+        limelight.pipelineSwitch(0);
 
-        telemetry.addLine("AVT - APRILTAG VISIBILITY TEST");
-        telemetry.addLine("Initializing camera...");
-        telemetry.update();
-
-        while (opModeInInit()
-                && visionPortal.getCameraState()
-                != VisionPortal.CameraState.STREAMING) {
-
-            telemetry.addData(
-                    "Camera",
-                    visionPortal.getCameraState()
-            );
-
-            telemetry.update();
-            sleep(50);
-        }
-
-        if (isStopRequested()) {
-            visionPortal.close();
-            return;
-        }
-
-        telemetry.addLine("Camera ready!");
+        telemetry.addLine("AVT - LIMELIGHT CONNECTED");
+        telemetry.addLine("IP: 179.29.0.1");
+        telemetry.addLine("Pipeline: 0");
         telemetry.update();
 
         waitForStart();
 
+        if (isStopRequested()) return;
+
+        limelight.start();
+
         while (opModeIsActive()) {
 
-            List<AprilTagDetection> detections =
-                    aprilTag.getDetections();
+            LLResult result = limelight.getLatestResult();
 
-            int visibleTags = 0;
+            if (result != null && result.isValid()) {
 
-            telemetry.addLine("APRILTAG VISIBILITY");
-            telemetry.addData(
-                    "Total detections",
-                    detections.size()
-            );
+                List<LLResultTypes.FiducialResult> tags =
+                        result.getFiducialResults();
 
-            for (AprilTagDetection detection : detections) {
+                if (tags != null && !tags.isEmpty()) {
 
-                if (detection instanceof AprilTagSingleDetection) {
+                    telemetry.addData("Status", "APRILTAG DETECTED");
 
-                    AprilTagSingleDetection singleDetection =
-                            (AprilTagSingleDetection) detection;
+                    for (LLResultTypes.FiducialResult tag : tags) {
+                        telemetry.addData(
+                                "AprilTag ID",
+                                tag.getFiducialId()
+                        );
+                    }
 
-                    telemetry.addData(
-                            "Visible Tag",
-                            "ID %d",
-                            singleDetection.id
-                    );
-
-                    visibleTags++;
+                } else {
+                    telemetry.addLine("No AprilTags detected");
                 }
-            }
 
-            if (visibleTags == 0) {
-                telemetry.addLine("No individual AprilTags detected.");
+            } else {
+                telemetry.addLine("Waiting for Limelight data...");
             }
 
             telemetry.update();
             sleep(50);
         }
 
-        visionPortal.close();
+        limelight.stop();
     }
 }
