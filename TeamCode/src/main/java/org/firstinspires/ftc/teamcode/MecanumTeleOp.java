@@ -44,7 +44,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
  * we will also need to adjust the "PIDF" coefficients with some that are a better fit for our application.
  */
 
-//@TeleOp(name = "MecanumTeleOp", group = "Test")
+@TeleOp(name = "MecanumTeleOp", group = "Test")
 //@Disabled
 class MecanumTeleOp extends OpMode {
 
