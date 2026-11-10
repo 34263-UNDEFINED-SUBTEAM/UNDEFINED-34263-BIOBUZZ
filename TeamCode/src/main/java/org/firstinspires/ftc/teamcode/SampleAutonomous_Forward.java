@@ -4,7 +4,7 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
-@Autonomous(name="Sample Autonomous", group = "Mr. Phil")
+// @Autonomous(name="Sample Autonomous", group = "Mr. Phil")
 public class SampleAutonomous_Forward extends LinearOpMode
 {
     // get an instance of the "Robot" class.

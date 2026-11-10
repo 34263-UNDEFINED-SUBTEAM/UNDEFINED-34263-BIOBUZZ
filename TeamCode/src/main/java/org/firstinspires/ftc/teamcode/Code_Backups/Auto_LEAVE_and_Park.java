@@ -5,7 +5,6 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
 @Autonomous(name = "TEST SOL AUTO", group = "Autonomous")
 public class Auto_LEAVE_and_Park extends LinearOpMode {
 

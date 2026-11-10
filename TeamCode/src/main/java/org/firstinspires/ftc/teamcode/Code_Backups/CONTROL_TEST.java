@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 
 import java.util.List;
 
-@Autonomous(name = "CONTROL TEST", group = "Autonomous")
+// @Autonomous(name = "CONTROL TEST", group = "Autonomous")
 public class CONTROL_TEST extends LinearOpMode {
 
     private DcMotor frontLeft;

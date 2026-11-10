@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-@Autonomous(name = "TEST SOL AUTO", group = "Autonomous")
+// @Autonomous(name = "TEST SOL AUTO", group = "Autonomous")
 public class SampleAutonomous extends LinearOpMode {
 
     private DcMotor frontLeft;
