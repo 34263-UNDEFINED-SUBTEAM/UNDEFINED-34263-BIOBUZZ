@@ -21,17 +21,17 @@ public class OVT extends LinearOpMode {
     private DcMotor leftDrive;
     private DcMotor rightDrive;
 
-    // Change this if your object detection pipeline uses another slot.
+    // Limelight pipeline containing the trained object detector.
     private static final int OBJECT_PIPELINE = 1;
 
-    // Detection confidence threshold (percentage).
+    // Minimum detector confidence.
     private static final double MIN_CONFIDENCE = 60.0;
 
-    // Conservative test movement settings.
+    // Conservative test movement.
     private static final double MOVEMENT_POWER = 0.20;
-    private static final double MOVEMENT_SECONDS = 0.25;
+    private static final double MOVEMENT_SECONDS = 0.20;
 
-    // Require the object to disappear before another action.
+    // Time an object must disappear before another action.
     private static final double CLEAR_SECONDS = 1.0;
 
     private final ElapsedTime movementTimer = new ElapsedTime();
@@ -42,6 +42,7 @@ public class OVT extends LinearOpMode {
     @Override
     public void runOpMode() {
 
+        // Initialize drive motors.
         leftDrive = hardwareMap.get(
                 DcMotor.class, "left_drive");
 
@@ -59,6 +60,7 @@ public class OVT extends LinearOpMode {
 
         stopDrive();
 
+        // Initialize Limelight.
         limelight = hardwareMap.get(
                 Limelight3A.class, "limelight");
 
@@ -67,6 +69,8 @@ public class OVT extends LinearOpMode {
 
         telemetry.addLine("OVT - Object Vision Test");
         telemetry.addData("Pipeline", OBJECT_PIPELINE);
+        telemetry.addData("Limelight Connected",
+                limelight.isConnected());
         telemetry.addLine("Waiting for start...");
         telemetry.update();
 
@@ -97,7 +101,7 @@ public class OVT extends LinearOpMode {
                                 detection.getConfidence();
 
                         telemetry.addData(
-                                "Detected",
+                                "Raw Detection",
                                 "%s (%.1f%%)",
                                 className,
                                 confidence
@@ -129,8 +133,14 @@ public class OVT extends LinearOpMode {
                             break;
                         }
                     }
+
+                } else {
+
+                    telemetry.addLine(
+                            "Waiting for Limelight detection...");
                 }
 
+                // Re-arm after the object disappears.
                 if (!recognizedObject) {
 
                     if (clearTimer.seconds() >= CLEAR_SECONDS) {
@@ -138,6 +148,7 @@ public class OVT extends LinearOpMode {
                     }
 
                 } else {
+
                     clearTimer.reset();
                 }
 
@@ -197,11 +208,14 @@ public class OVT extends LinearOpMode {
         telemetry.addData("Executing", objectType);
         telemetry.update();
 
+        // Speak through the REV Driver Hub.
+        telemetry.speak("Siddarth is the Best!");
+
         switch (objectType) {
 
             case "POLLEN":
 
-                // Short forward pulse.
+                // Short forward movement.
                 moveRobot(
                         MOVEMENT_POWER,
                         MOVEMENT_POWER
