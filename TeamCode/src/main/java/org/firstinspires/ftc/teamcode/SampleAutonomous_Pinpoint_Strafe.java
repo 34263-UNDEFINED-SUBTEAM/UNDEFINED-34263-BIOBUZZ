@@ -1,14 +1,14 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
-// @Autonomous(name="Sample Autonomous", group = "Mr. Phil")
-public class SampleAutonomous_Forward extends LinearOpMode
+@Autonomous
+public class SampleAutonomous_Pinpoint_Strafe extends LinearOpMode
 {
     // get an instance of the "Robot" class.
-    private SimplifiedOdometryRobot robot = new SimplifiedOdometryRobot(this);
+    private SimplifiedOdometryRobot_Pinpoint robot = new SimplifiedOdometryRobot_Pinpoint(this);
 
     @Override public void runOpMode()
     {
@@ -27,8 +27,8 @@ public class SampleAutonomous_Forward extends LinearOpMode
         {
             // Note, this example takes more than 30 seconds to execute, so turn OFF the auto timer.
 
-            // Drive forward
-            robot.drive(  84, 0.60, 0.25);
+            // Strafe
+            robot.strafe( 24, 0.60, 0.15);
            
         }
     }

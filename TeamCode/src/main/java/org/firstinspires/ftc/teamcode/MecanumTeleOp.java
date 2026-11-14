@@ -46,7 +46,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 
 @TeleOp(name = "MecanumTeleOp", group = "Test")
 //@Disabled
-class MecanumTeleOp extends OpMode {
+public class MecanumTeleOp extends OpMode {
 
     // Declare OpMode members.
     private DcMotor leftFrontDrive = null;

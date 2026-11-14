@@ -1,11 +1,11 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
-// @Autonomous(name="Sample Autonomous", group = "Mr. Phil")
-public class SampleAutonomous_Forward_Pinpoint extends LinearOpMode
+@Autonomous
+public class SampleAutonomous_Pinpoint_Turn extends LinearOpMode
 {
     // get an instance of the "Robot" class.
     private SimplifiedOdometryRobot_Pinpoint robot = new SimplifiedOdometryRobot_Pinpoint(this);
@@ -27,8 +27,8 @@ public class SampleAutonomous_Forward_Pinpoint extends LinearOpMode
         {
             // Note, this example takes more than 30 seconds to execute, so turn OFF the auto timer.
 
-            // Drive forward
-            robot.drive(  84, 0.60, 0.25);
+            // Turn
+            robot.turnTo(90, 0.45, 0.5);
            
         }
     }
