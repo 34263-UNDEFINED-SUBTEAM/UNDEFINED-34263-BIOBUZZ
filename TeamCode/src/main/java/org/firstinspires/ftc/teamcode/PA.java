@@ -6,39 +6,54 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-@Autonomous(name = "PA - Pollen Autonomous", group = "Competition")
+@Autonomous(name = "Pollen Auto", group = "Autonomous")
 public class PA extends LinearOpMode {
+
+    // ================= HARDWARE =================
 
     private DcMotor frontLeft;
     private DcMotor frontRight;
     private DcMotor backLeft;
     private DcMotor backRight;
 
+    // ================= CALIBRATION =================
+
+    private static final double TICKS_PER_INCH = 41.81;
+    private static final double TURN_DIAMETER_INCHES = 28.0;
+
+    // ================= POWER =================
+
+    private static final double DRIVE_POWER = 0.25;
+    private static final double TURN_POWER = 0.22;
+
+    // ================= SAFETY =================
+
+    private static final double MOVE_TIMEOUT_BASE = 2.0;
+    private static final double MAX_MOVE_TIMEOUT = 8.0;
+    private static final double MATCH_LIMIT = 29.0;
+
     private final ElapsedTime matchTimer = new ElapsedTime();
+    private final ElapsedTime moveTimer = new ElapsedTime();
 
-    // CALIBRATE THESE BEFORE ENABLING MOVEMENT.
-    private static final double TICKS_PER_INCH = 0.0;
-    private static final double TRACK_WIDTH_INCHES = 0.0;
-
-    private static final double AUTO_TIME_LIMIT = 29.0;
+    // =================================================
+    // MAIN
+    // =================================================
 
     @Override
     public void runOpMode() {
 
-        initializeRobot();
-
-        telemetry.addLine("PA - Pollen Autonomous");
-        telemetry.addLine("Four-motor mecanum drive");
-        telemetry.addLine("Checking encoder calibration...");
-
-        if (TICKS_PER_INCH <= 0 || TRACK_WIDTH_INCHES <= 0) {
-            telemetry.addLine("CALIBRATION REQUIRED.");
-            telemetry.addLine("Movement is disabled until calibrated.");
+        if (!initializeHardware()) {
+            telemetry.addLine("HARDWARE ERROR");
             telemetry.update();
             return;
         }
 
-        telemetry.addLine("Ready. Waiting for start.");
+        telemetry.addLine("POLLEN AUTONOMOUS");
+        telemetry.addLine("Movement-only configuration");
+        telemetry.addData("Ticks/Inch", TICKS_PER_INCH);
+        telemetry.addData("Turn Diameter", TURN_DIAMETER_INCHES);
+        telemetry.addLine("Shooter and intake disabled");
+        telemetry.addLine("Route is provisional - verify before field use");
         telemetry.update();
 
         waitForStart();
@@ -50,223 +65,369 @@ public class PA extends LinearOpMode {
 
         matchTimer.reset();
 
-        try {
+        runPollenRoute();
 
-            pollenReleasePlaceholder();
-            shootPlaceholder();
+        stopDrive();
 
-            if (!timeAvailable()) return;
-            drive(20, 0.5);
-
-            if (!timeAvailable()) return;
-            turn(35);
-
-            if (!timeAvailable()) return;
-            drive(18, 0.5);
-
-            if (!timeAvailable()) return;
-            collectPlaceholder(2.0);
-
-            if (!timeAvailable()) return;
-            shootPlaceholder();
-
-            if (!timeAvailable()) return;
-            turn(-70);
-
-            if (!timeAvailable()) return;
-            drive(30, 0.5);
-
-            if (!timeAvailable()) return;
-            collectPlaceholder(3.0);
-
-        } finally {
-            stopDrive();
-        }
-
-        telemetry.addLine("PA finished.");
+        telemetry.addLine("POLLEN AUTO FINISHED");
         telemetry.update();
     }
 
-    private void initializeRobot() {
+    // =================================================
+    // HARDWARE INITIALIZATION
+    // =================================================
 
-        frontLeft = hardwareMap.get(
-                DcMotor.class, "front_left_drive");
+    private boolean initializeHardware() {
 
-        frontRight = hardwareMap.get(
-                DcMotor.class, "front_right_drive");
+        try {
+            frontLeft = hardwareMap.get(
+                    DcMotor.class, "front_left_drive");
 
-        backLeft = hardwareMap.get(
-                DcMotor.class, "back_left_drive");
+            frontRight = hardwareMap.get(
+                    DcMotor.class, "front_right_drive");
 
-        backRight = hardwareMap.get(
-                DcMotor.class, "back_right_drive");
+            backLeft = hardwareMap.get(
+                    DcMotor.class, "back_left_drive");
 
-        // Standard starting direction setup.
+            backRight = hardwareMap.get(
+                    DcMotor.class, "back_right_drive");
+
+        } catch (Exception e) {
+
+            telemetry.addData("Hardware Error", e.getMessage());
+            telemetry.update();
+
+            return false;
+        }
+
+        // Previously tested motor directions
+
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
         backLeft.setDirection(DcMotor.Direction.REVERSE);
 
         frontRight.setDirection(DcMotor.Direction.FORWARD);
         backRight.setDirection(DcMotor.Direction.FORWARD);
 
-        setBrakeBehavior();
+        DcMotor[] motors = getMotors();
 
-        resetEncoders();
+        for (DcMotor motor : motors) {
 
-        setRunUsingEncoders();
+            motor.setPower(0);
 
-        stopDrive();
-    }
+            motor.setZeroPowerBehavior(
+                    DcMotor.ZeroPowerBehavior.BRAKE);
 
-    private void setBrakeBehavior() {
+            motor.setMode(
+                    DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-    }
-
-    private void resetEncoders() {
-
-        frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        backLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        backRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-    }
-
-    private void setRunUsingEncoders() {
-
-        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        backLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        backRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-    }
-
-    private boolean timeAvailable() {
-
-        if (isStopRequested()) {
-            return false;
-        }
-
-        if (matchTimer.seconds() >= AUTO_TIME_LIMIT) {
-            telemetry.addLine("Autonomous time limit reached.");
-            telemetry.update();
-            stopDrive();
-            return false;
+            motor.setMode(
+                    DcMotor.RunMode.RUN_USING_ENCODER);
         }
 
         return true;
     }
 
-    private void drive(double inches, double power) {
+    private DcMotor[] getMotors() {
 
-        int ticks = (int) (inches * TICKS_PER_INCH);
-
-        moveMecanum(
-                ticks, ticks,
-                ticks, ticks,
-                power
-        );
-
-        telemetry.addData("Drive", "%.1f inches", inches);
-        telemetry.update();
+        return new DcMotor[]{
+                frontLeft,
+                frontRight,
+                backLeft,
+                backRight
+        };
     }
 
-    private void turn(double degrees) {
+    // =================================================
+    // MECANUM DRIVE
+    // =================================================
 
-        double arcDistance =
-                Math.PI * TRACK_WIDTH_INCHES * degrees / 360.0;
+    /*
+     * Positive forward = forward.
+     * Positive strafeRight = right.
+     *
+     * These are the original equations tested successfully
+     * on this robot. Do not reverse their signs.
+     */
 
-        int ticks = (int) (arcDistance * TICKS_PER_INCH);
+    private boolean drive(
+            double forward,
+            double strafeRight) {
 
-        moveMecanum(
-                ticks, -ticks,
-                ticks, -ticks,
-                0.4
+        int flTicks = (int) Math.round(
+                (forward + strafeRight) * TICKS_PER_INCH);
+
+        int frTicks = (int) Math.round(
+                (forward - strafeRight) * TICKS_PER_INCH);
+
+        int blTicks = (int) Math.round(
+                (forward - strafeRight) * TICKS_PER_INCH);
+
+        int brTicks = (int) Math.round(
+                (forward + strafeRight) * TICKS_PER_INCH);
+
+        return runToPosition(
+                flTicks,
+                frTicks,
+                blTicks,
+                brTicks,
+                DRIVE_POWER,
+                "DRIVE"
         );
-
-        telemetry.addData("Turn", "%.1f degrees", degrees);
-        telemetry.update();
     }
 
-    private void moveMecanum(
-            int flTicks,
-            int frTicks,
-            int blTicks,
-            int brTicks,
-            double power) {
+    // =================================================
+    // TURNING
+    // =================================================
 
-        if (!opModeIsActive() || !timeAvailable()) {
+    /*
+     * Positive degrees = clockwise.
+     * Negative degrees = counterclockwise.
+     */
+
+    private boolean turn(double degrees) {
+
+        double wheelTravel =
+                Math.PI * TURN_DIAMETER_INCHES
+                        * degrees / 360.0;
+
+        int ticks = (int) Math.round(
+                wheelTravel * TICKS_PER_INCH);
+
+        return runToPosition(
+                ticks,
+                -ticks,
+                ticks,
+                -ticks,
+                TURN_POWER,
+                "TURN " + degrees
+        );
+    }
+
+    // =================================================
+    // ENCODER MOVEMENT ENGINE
+    // =================================================
+
+    private boolean runToPosition(
+            int flDelta,
+            int frDelta,
+            int blDelta,
+            int brDelta,
+            double power,
+            String action) {
+
+        if (!opModeIsActive() || timeLimitReached()) {
             stopDrive();
-            return;
+            return false;
         }
 
-        frontLeft.setTargetPosition(
-                frontLeft.getCurrentPosition() + flTicks);
+        DcMotor[] motors = getMotors();
 
-        frontRight.setTargetPosition(
-                frontRight.getCurrentPosition() + frTicks);
+        int[] deltas = {
+                flDelta,
+                frDelta,
+                blDelta,
+                brDelta
+        };
 
-        backLeft.setTargetPosition(
-                backLeft.getCurrentPosition() + blTicks);
+        int maxTicks = 0;
 
-        backRight.setTargetPosition(
-                backRight.getCurrentPosition() + brTicks);
+        // Set target positions
 
-        frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        backLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        backRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        for (int i = 0; i < motors.length; i++) {
 
-        double safePower = Math.abs(power);
+            int target =
+                    motors[i].getCurrentPosition() + deltas[i];
 
-        frontLeft.setPower(safePower);
-        frontRight.setPower(safePower);
-        backLeft.setPower(safePower);
-        backRight.setPower(safePower);
+            motors[i].setTargetPosition(target);
 
-        ElapsedTime movementTimer = new ElapsedTime();
+            maxTicks = Math.max(
+                    maxTicks,
+                    Math.abs(deltas[i]));
+        }
 
-        while (opModeIsActive()
-                && timeAvailable()
-                && (frontLeft.isBusy()
-                || frontRight.isBusy()
-                || backLeft.isBusy()
-                || backRight.isBusy())
-                && movementTimer.seconds() < 8.0) {
+        // Activate RUN_TO_POSITION
 
-            telemetry.addData("FL", frontLeft.getCurrentPosition());
-            telemetry.addData("FR", frontRight.getCurrentPosition());
-            telemetry.addData("BL", backLeft.getCurrentPosition());
-            telemetry.addData("BR", backRight.getCurrentPosition());
+        for (DcMotor motor : motors) {
+
+            motor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+            motor.setPower(Math.abs(power));
+        }
+
+        // Calculate timeout
+
+        double estimatedInches =
+                maxTicks / TICKS_PER_INCH;
+
+        double timeoutSeconds = Math.min(
+                MAX_MOVE_TIMEOUT,
+                MOVE_TIMEOUT_BASE + estimatedInches / 5.0
+        );
+
+        moveTimer.reset();
+
+        // Movement monitoring loop
+
+        while (opModeIsActive()) {
+
+            boolean anyMotorBusy = false;
+
+            for (DcMotor motor : motors) {
+
+                if (motor.isBusy()) {
+                    anyMotorBusy = true;
+                    break;
+                }
+            }
+
+            // Telemetry
+
+            telemetry.addData("Action", action);
+
+            telemetry.addData(
+                    "Match Time",
+                    "%.1f / %.1f",
+                    matchTimer.seconds(),
+                    MATCH_LIMIT
+            );
+
+            telemetry.addData(
+                    "Movement Time",
+                    "%.1f / %.1f",
+                    moveTimer.seconds(),
+                    timeoutSeconds
+            );
+
+            telemetry.addData(
+                    "Front Left",
+                    "%d / %d",
+                    frontLeft.getCurrentPosition(),
+                    frontLeft.getTargetPosition()
+            );
+
+            telemetry.addData(
+                    "Front Right",
+                    "%d / %d",
+                    frontRight.getCurrentPosition(),
+                    frontRight.getTargetPosition()
+            );
+
+            telemetry.addData(
+                    "Back Left",
+                    "%d / %d",
+                    backLeft.getCurrentPosition(),
+                    backLeft.getTargetPosition()
+            );
+
+            telemetry.addData(
+                    "Back Right",
+                    "%d / %d",
+                    backRight.getCurrentPosition(),
+                    backRight.getTargetPosition()
+            );
+
             telemetry.update();
+
+            // Safety timeout
+
+            if (timeLimitReached()
+                    || moveTimer.seconds() > timeoutSeconds) {
+
+                stopDrive();
+
+                telemetry.addLine(
+                        "MOVEMENT STOPPED: TIMEOUT");
+
+                telemetry.update();
+
+                return false;
+            }
+
+            // All motors reached their targets
+
+            if (!anyMotorBusy) {
+
+                stopDrive();
+
+                return true;
+            }
 
             idle();
         }
 
         stopDrive();
-        setRunUsingEncoders();
+
+        return false;
     }
 
-    private void collectPlaceholder(double seconds) {
-        telemetry.addData("Collect", "Not configured yet (%.1f sec)", seconds);
-        telemetry.update();
+    // =================================================
+    // TIME LIMIT
+    // =================================================
+
+    private boolean timeLimitReached() {
+
+        return matchTimer.seconds() >= MATCH_LIMIT;
     }
 
-    private void shootPlaceholder() {
-        telemetry.addLine("Shooting mechanism not configured.");
-        telemetry.update();
-    }
-
-    private void pollenReleasePlaceholder() {
-        telemetry.addLine("Pollen release not configured.");
-        telemetry.update();
-    }
+    // =================================================
+    // STOP ALL MOTORS
+    // =================================================
 
     private void stopDrive() {
 
-        if (frontLeft != null) frontLeft.setPower(0);
-        if (frontRight != null) frontRight.setPower(0);
-        if (backLeft != null) backLeft.setPower(0);
-        if (backRight != null) backRight.setPower(0);
+        if (frontLeft == null
+                || frontRight == null
+                || backLeft == null
+                || backRight == null) {
+
+            return;
+        }
+
+        for (DcMotor motor : getMotors()) {
+
+            motor.setPower(0);
+
+            motor.setMode(
+                    DcMotor.RunMode.RUN_USING_ENCODER);
+        }
+    }
+
+    // =================================================
+    // POLLEN AUTONOMOUS ROUTE
+    // =================================================
+
+    private void runPollenRoute() {
+
+        telemetry.addLine("STARTING POLLEN ROUTE");
+        telemetry.update();
+
+        // 1. Move forward 20 inches
+
+        if (!drive(20, 0)) return;
+
+        // 2. Turn clockwise 35 degrees
+
+        if (!turn(35)) return;
+
+        // 3. Move forward 18 inches
+
+        if (!drive(18, 0)) return;
+
+        // 4. Turn counterclockwise 70 degrees
+
+        if (!turn(-70)) return;
+
+        // 5. Move forward 30 inches
+
+        if (!drive(30, 0)) return;
+
+        /*
+         * Shooter, intake, pollen release, and collection
+         * are intentionally not implemented yet.
+         *
+         * The recovered route is provisional.
+         * Verify starting position, heading, and distances
+         * before running on the competition field.
+         */
     }
 }
