@@ -6,3 +6,4 @@ Sans/Rishan: Yes I do :) :) :::) :) :) ;) ;)
 Rithish: oh no
 Rishan/Sans: Goodbye
 [Enter tortured screams and undescribable sound here]
+Real Rithish: Who is acting like me? I didn't say any of that!   
