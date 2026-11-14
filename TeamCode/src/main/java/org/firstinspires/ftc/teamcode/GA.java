@@ -4,93 +4,31 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Autonomous(name = "GA - Garden Autonomous", group = "Competition")
 public class GA extends LinearOpMode {
 
+    // Hardware
     private DcMotor frontLeft;
     private DcMotor frontRight;
     private DcMotor backLeft;
     private DcMotor backRight;
 
-    private final ElapsedTime matchTimer = new ElapsedTime();
+    // Initial encoder calibration
+    private static final double TICKS_PER_INCH = 41.81;
 
-    // CALIBRATE THESE BEFORE ENABLING MOVEMENT.
-    private static final double TICKS_PER_INCH = 0.0;
-    private static final double TRACK_WIDTH_INCHES = 0.0;
+    // Conservative starting power
+    private static final double DRIVE_POWER = 0.30;
+    private static final double TURN_POWER = 0.25;
 
-    private static final double AUTO_TIME_LIMIT = 29.0;
+    private static final double MATCH_TIME_SECONDS = 29.0;
+
+    private long matchStartTime;
 
     @Override
     public void runOpMode() {
 
-        initializeRobot();
-
-        telemetry.addLine("GA - Garden Autonomous");
-        telemetry.addLine("Four-motor mecanum drive");
-        telemetry.addLine("Checking encoder calibration...");
-
-        if (TICKS_PER_INCH <= 0 || TRACK_WIDTH_INCHES <= 0) {
-            telemetry.addLine("CALIBRATION REQUIRED.");
-            telemetry.addLine("Movement is disabled until calibrated.");
-            telemetry.update();
-            return;
-        }
-
-        telemetry.addLine("Ready. Waiting for start.");
-        telemetry.update();
-
-        waitForStart();
-
-        if (isStopRequested()) {
-            stopDrive();
-            return;
-        }
-
-        matchTimer.reset();
-
-        try {
-
-            shootPlaceholder();
-
-            if (!timeAvailable()) return;
-            drive(28, 0.5);
-
-            if (!timeAvailable()) return;
-            turn(-35, 0.4);
-
-            if (!timeAvailable()) return;
-            drive(20, 0.5);
-
-            if (!timeAvailable()) return;
-            collectPlaceholder(2.5);
-
-            if (!timeAvailable()) return;
-            shootPlaceholder();
-
-            if (!timeAvailable()) return;
-            pollenReleasePlaceholder();
-
-            if (!timeAvailable()) return;
-            turn(70, 0.4);
-
-            if (!timeAvailable()) return;
-            drive(22, 0.5);
-
-            if (!timeAvailable()) return;
-            collectPlaceholder(3.0);
-
-        } finally {
-            stopDrive();
-        }
-
-        telemetry.addLine("GA finished.");
-        telemetry.update();
-    }
-
-    private void initializeRobot() {
-
+        // Map all four mecanum drive motors
         frontLeft = hardwareMap.get(
                 DcMotor.class, "front_left_drive");
 
@@ -103,137 +41,197 @@ public class GA extends LinearOpMode {
         backRight = hardwareMap.get(
                 DcMotor.class, "back_right_drive");
 
+        // Initial direction assumption.
+        // Verify with wheels lifted before driving.
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
         backLeft.setDirection(DcMotor.Direction.REVERSE);
 
         frontRight.setDirection(DcMotor.Direction.FORWARD);
         backRight.setDirection(DcMotor.Direction.FORWARD);
 
-        setBrakeBehavior();
+        resetDriveEncoders();
 
-        resetEncoders();
+        telemetry.addLine("GA - GARDEN AUTONOMOUS");
+        telemetry.addLine("Four-motor mecanum drive");
+        telemetry.addData("Ticks per inch", TICKS_PER_INCH);
+        telemetry.addLine("Initial calibration - TEST REQUIRED");
+        telemetry.addLine("Press START when ready.");
+        telemetry.update();
 
-        setRunUsingEncoders();
-
-        stopDrive();
-    }
-
-    private void setBrakeBehavior() {
-
-        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-    }
-
-    private void resetEncoders() {
-
-        frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        backLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        backRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-    }
-
-    private void setRunUsingEncoders() {
-
-        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        backLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        backRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-    }
-
-    private boolean timeAvailable() {
+        waitForStart();
 
         if (isStopRequested()) {
-            return false;
-        }
-
-        if (matchTimer.seconds() >= AUTO_TIME_LIMIT) {
-            telemetry.addLine("Autonomous time limit reached.");
-            telemetry.update();
-            stopDrive();
-            return false;
-        }
-
-        return true;
-    }
-
-    private void drive(double inches, double power) {
-
-        int ticks = (int) (inches * TICKS_PER_INCH);
-
-        moveMecanum(
-                ticks, ticks,
-                ticks, ticks,
-                power
-        );
-
-        telemetry.addData("Drive", "%.1f inches", inches);
-        telemetry.update();
-    }
-
-    private void turn(double degrees, double power) {
-
-        double arcDistance =
-                Math.PI * TRACK_WIDTH_INCHES * degrees / 360.0;
-
-        int ticks = (int) (arcDistance * TICKS_PER_INCH);
-
-        moveMecanum(
-                ticks, -ticks,
-                ticks, -ticks,
-                power
-        );
-
-        telemetry.addData("Turn", "%.1f degrees", degrees);
-        telemetry.update();
-    }
-
-    private void moveMecanum(
-            int flTicks,
-            int frTicks,
-            int blTicks,
-            int brTicks,
-            double power) {
-
-        if (!opModeIsActive() || !timeAvailable()) {
-            stopDrive();
+            stopRobot();
             return;
         }
 
-        frontLeft.setTargetPosition(
-                frontLeft.getCurrentPosition() + flTicks);
+        matchStartTime = System.nanoTime();
 
-        frontRight.setTargetPosition(
-                frontRight.getCurrentPosition() + frTicks);
+        // ==================================
+        // GARDEN AUTONOMOUS ROUTE
+        // ==================================
 
-        backLeft.setTargetPosition(
-                backLeft.getCurrentPosition() + blTicks);
+        // 1. Initial shooting position
+        shootPlaceholder();
 
-        backRight.setTargetPosition(
-                backRight.getCurrentPosition() + brTicks);
+        // 2. Move forward 28 inches
+        drive(28);
 
-        frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        backLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        backRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        // 3. Turn approximately -35 degrees
+        turnPlaceholder(-35);
 
-        double safePower = Math.abs(power);
+        // 4. Move forward 20 inches
+        drive(20);
 
-        frontLeft.setPower(safePower);
-        frontRight.setPower(safePower);
-        backLeft.setPower(safePower);
-        backRight.setPower(safePower);
+        // 5. Collect
+        collectPlaceholder(2.5);
 
-        ElapsedTime movementTimer = new ElapsedTime();
+        // 6. Shoot
+        shootPlaceholder();
+
+        // 7. Release pollen
+        pollenReleasePlaceholder();
+
+        // 8. Turn approximately 70 degrees
+        turnPlaceholder(70);
+
+        // 9. Move forward 22 inches
+        drive(22);
+
+        // 10. Collect again
+        collectPlaceholder(3.0);
+
+        stopRobot();
+
+        telemetry.addLine("AUTONOMOUS COMPLETE");
+        telemetry.update();
+    }
+
+    // ==================================
+    // DRIVE CONTROL
+    // ==================================
+
+    private void drive(double inches) {
+
+        if (!opModeIsActive() || timeExpired()) {
+            return;
+        }
+
+        int ticks = (int) Math.round(inches * TICKS_PER_INCH);
+
+        setTarget(
+                frontLeft.getCurrentPosition() + ticks,
+                frontRight.getCurrentPosition() + ticks,
+                backLeft.getCurrentPosition() + ticks,
+                backRight.getCurrentPosition() + ticks
+        );
+
+        setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        setPower(DRIVE_POWER);
+
+        waitForMotors();
+
+        stopDrive();
+        setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+
+    // ==================================
+    // TURNING
+    // ==================================
+
+    private void turnPlaceholder(double degrees) {
+
+        telemetry.addData(
+                "TURN NOT CALIBRATED",
+                "%.1f degrees", degrees
+        );
+
+        telemetry.addLine(
+                "Turn skipped for safety."
+        );
+
+        telemetry.update();
+
+        // No guessed turn distance or track width.
+        sleep(300);
+    }
+
+    // ==================================
+    // PLACEHOLDER MECHANISMS
+    // ==================================
+
+    private void collectPlaceholder(double seconds) {
+
+        telemetry.addData("COLLECT", "Placeholder: %.1f seconds", seconds);
+        telemetry.update();
+
+        sleep((long) (seconds * 1000));
+    }
+
+    private void shootPlaceholder() {
+
+        telemetry.addLine("SHOOT: Mechanism not configured");
+        telemetry.update();
+
+        sleep(300);
+    }
+
+    private void pollenReleasePlaceholder() {
+
+        telemetry.addLine("POLLEN RELEASE: Not configured");
+        telemetry.update();
+
+        sleep(300);
+    }
+
+    // ==================================
+    // ENCODER HELPERS
+    // ==================================
+
+    private void resetDriveEncoders() {
+
+        setPower(0);
+
+        setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+
+    private void setTarget(
+            int fl, int fr, int bl, int br) {
+
+        frontLeft.setTargetPosition(fl);
+        frontRight.setTargetPosition(fr);
+        backLeft.setTargetPosition(bl);
+        backRight.setTargetPosition(br);
+    }
+
+    private void setMode(DcMotor.RunMode mode) {
+
+        frontLeft.setMode(mode);
+        frontRight.setMode(mode);
+        backLeft.setMode(mode);
+        backRight.setMode(mode);
+    }
+
+    private void setPower(double power) {
+
+        frontLeft.setPower(power);
+        frontRight.setPower(power);
+        backLeft.setPower(power);
+        backRight.setPower(power);
+    }
+
+    private void waitForMotors() {
+
+        long timeout = System.currentTimeMillis() + 8000;
 
         while (opModeIsActive()
-                && timeAvailable()
+                && !timeExpired()
+                && System.currentTimeMillis() < timeout
                 && (frontLeft.isBusy()
                 || frontRight.isBusy()
                 || backLeft.isBusy()
-                || backRight.isBusy())
-                && movementTimer.seconds() < 8.0) {
+                || backRight.isBusy())) {
 
             telemetry.addData("FL", frontLeft.getCurrentPosition());
             telemetry.addData("FR", frontRight.getCurrentPosition());
@@ -243,27 +241,25 @@ public class GA extends LinearOpMode {
 
             idle();
         }
-
-        stopDrive();
-        setRunUsingEncoders();
     }
 
-    private void collectPlaceholder(double seconds) {
-        telemetry.addData("Collect", "Not configured yet (%.1f sec)", seconds);
-        telemetry.update();
-    }
+    // ==================================
+    // SAFETY
+    // ==================================
 
-    private void shootPlaceholder() {
-        telemetry.addLine("Shooting mechanism not configured.");
-        telemetry.update();
-    }
+    private boolean timeExpired() {
 
-    private void pollenReleasePlaceholder() {
-        telemetry.addLine("Pollen release not configured.");
-        telemetry.update();
+        double elapsed =
+                (System.nanoTime() - matchStartTime) / 1_000_000_000.0;
+
+        return elapsed >= MATCH_TIME_SECONDS;
     }
 
     private void stopDrive() {
+        setPower(0);
+    }
+
+    private void stopRobot() {
 
         if (frontLeft != null) frontLeft.setPower(0);
         if (frontRight != null) frontRight.setPower(0);
