@@ -4,27 +4,22 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Autonomous(name = "GA - Garden Autonomous", group = "Competition")
 public class GA extends LinearOpMode {
 
-    // Drive motors
-    private DcMotor leftDrive;
-    private DcMotor rightDrive;
+    private DcMotor frontLeft;
+    private DcMotor frontRight;
+    private DcMotor backLeft;
+    private DcMotor backRight;
 
-    // Intake hardware
-    private DcMotor intake;
-    private CRServo leftIntakeServo;
-    private CRServo rightIntakeServo;
-
-    // Match timer
     private final ElapsedTime matchTimer = new ElapsedTime();
 
-    // Starting estimates - must be calibrated
-    private static final double TICKS_PER_INCH = 45.0;
-    private static final double TRACK_WIDTH = 14.0;
+    // CALIBRATE THESE BEFORE ENABLING MOVEMENT.
+    private static final double TICKS_PER_INCH = 0.0;
+    private static final double TRACK_WIDTH_INCHES = 0.0;
+
     private static final double AUTO_TIME_LIMIT = 29.0;
 
     @Override
@@ -33,14 +28,23 @@ public class GA extends LinearOpMode {
         initializeRobot();
 
         telemetry.addLine("GA - Garden Autonomous");
-        telemetry.addLine("Robot initialized.");
-        telemetry.addLine("Waiting for start...");
+        telemetry.addLine("Four-motor mecanum drive");
+        telemetry.addLine("Checking encoder calibration...");
+
+        if (TICKS_PER_INCH <= 0 || TRACK_WIDTH_INCHES <= 0) {
+            telemetry.addLine("CALIBRATION REQUIRED.");
+            telemetry.addLine("Movement is disabled until calibrated.");
+            telemetry.update();
+            return;
+        }
+
+        telemetry.addLine("Ready. Waiting for start.");
         telemetry.update();
 
         waitForStart();
 
         if (isStopRequested()) {
-            stopAll();
+            stopDrive();
             return;
         }
 
@@ -48,10 +52,8 @@ public class GA extends LinearOpMode {
 
         try {
 
-            // Initial scoring placeholder
-            shoot();
+            shootPlaceholder();
 
-            // Move toward first collection area
             if (!timeAvailable()) return;
             drive(28, 0.5);
 
@@ -61,19 +63,15 @@ public class GA extends LinearOpMode {
             if (!timeAvailable()) return;
             drive(20, 0.5);
 
-            // Collect
             if (!timeAvailable()) return;
-            collect(2.5);
+            collectPlaceholder(2.5);
 
-            // Second scoring placeholder
             if (!timeAvailable()) return;
-            shoot();
+            shootPlaceholder();
 
-            // Pollen release placeholder
             if (!timeAvailable()) return;
             pollenReleasePlaceholder();
 
-            // Move toward next collection area
             if (!timeAvailable()) return;
             turn(70, 0.4);
 
@@ -81,46 +79,67 @@ public class GA extends LinearOpMode {
             drive(22, 0.5);
 
             if (!timeAvailable()) return;
-            collect(3.0);
+            collectPlaceholder(3.0);
 
         } finally {
-            stopAll();
+            stopDrive();
         }
 
-        telemetry.addLine("GA Autonomous finished.");
+        telemetry.addLine("GA finished.");
         telemetry.update();
     }
 
     private void initializeRobot() {
 
-        leftDrive = hardwareMap.get(DcMotor.class, "left_drive");
-        rightDrive = hardwareMap.get(DcMotor.class, "right_drive");
+        frontLeft = hardwareMap.get(
+                DcMotor.class, "front_left_drive");
 
-        intake = hardwareMap.get(DcMotor.class, "intake");
+        frontRight = hardwareMap.get(
+                DcMotor.class, "front_right_drive");
 
-        leftIntakeServo =
-                hardwareMap.get(CRServo.class, "left_intake_servo");
+        backLeft = hardwareMap.get(
+                DcMotor.class, "back_left_drive");
 
-        rightIntakeServo =
-                hardwareMap.get(CRServo.class, "right_intake_servo");
+        backRight = hardwareMap.get(
+                DcMotor.class, "back_right_drive");
 
-        leftDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightDrive.setDirection(DcMotor.Direction.FORWARD);
+        frontLeft.setDirection(DcMotor.Direction.REVERSE);
+        backLeft.setDirection(DcMotor.Direction.REVERSE);
 
-        leftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRight.setDirection(DcMotor.Direction.FORWARD);
+        backRight.setDirection(DcMotor.Direction.FORWARD);
 
-        intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        setBrakeBehavior();
 
-        leftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        resetEncoders();
 
-        leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        setRunUsingEncoders();
 
-        intake.setPower(0);
-        leftIntakeServo.setPower(0);
-        rightIntakeServo.setPower(0);
+        stopDrive();
+    }
+
+    private void setBrakeBehavior() {
+
+        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+    }
+
+    private void resetEncoders() {
+
+        frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        backLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        backRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+    }
+
+    private void setRunUsingEncoders() {
+
+        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        backRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
     private boolean timeAvailable() {
@@ -132,7 +151,7 @@ public class GA extends LinearOpMode {
         if (matchTimer.seconds() >= AUTO_TIME_LIMIT) {
             telemetry.addLine("Autonomous time limit reached.");
             telemetry.update();
-            stopAll();
+            stopDrive();
             return false;
         }
 
@@ -143,7 +162,11 @@ public class GA extends LinearOpMode {
 
         int ticks = (int) (inches * TICKS_PER_INCH);
 
-        moveDrive(ticks, ticks, power);
+        moveMecanum(
+                ticks, ticks,
+                ticks, ticks,
+                power
+        );
 
         telemetry.addData("Drive", "%.1f inches", inches);
         telemetry.update();
@@ -152,142 +175,99 @@ public class GA extends LinearOpMode {
     private void turn(double degrees, double power) {
 
         double arcDistance =
-                Math.PI * TRACK_WIDTH * degrees / 360.0;
+                Math.PI * TRACK_WIDTH_INCHES * degrees / 360.0;
 
         int ticks = (int) (arcDistance * TICKS_PER_INCH);
 
-        moveDrive(ticks, -ticks, power);
+        moveMecanum(
+                ticks, -ticks,
+                ticks, -ticks,
+                power
+        );
 
         telemetry.addData("Turn", "%.1f degrees", degrees);
         telemetry.update();
     }
 
-    private void moveDrive(int leftTicks, int rightTicks, double power) {
+    private void moveMecanum(
+            int flTicks,
+            int frTicks,
+            int blTicks,
+            int brTicks,
+            double power) {
 
         if (!opModeIsActive() || !timeAvailable()) {
             stopDrive();
             return;
         }
 
-        leftDrive.setTargetPosition(
-                leftDrive.getCurrentPosition() + leftTicks
-        );
+        frontLeft.setTargetPosition(
+                frontLeft.getCurrentPosition() + flTicks);
 
-        rightDrive.setTargetPosition(
-                rightDrive.getCurrentPosition() + rightTicks
-        );
+        frontRight.setTargetPosition(
+                frontRight.getCurrentPosition() + frTicks);
 
-        leftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        rightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backLeft.setTargetPosition(
+                backLeft.getCurrentPosition() + blTicks);
+
+        backRight.setTargetPosition(
+                backRight.getCurrentPosition() + brTicks);
+
+        frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         double safePower = Math.abs(power);
 
-        leftDrive.setPower(safePower);
-        rightDrive.setPower(safePower);
+        frontLeft.setPower(safePower);
+        frontRight.setPower(safePower);
+        backLeft.setPower(safePower);
+        backRight.setPower(safePower);
 
         ElapsedTime movementTimer = new ElapsedTime();
 
-        double distanceInches =
-                Math.abs(leftTicks) / TICKS_PER_INCH;
-
-        double timeoutSeconds =
-                Math.max(2.0, distanceInches * 0.3 + 2.0);
-
         while (opModeIsActive()
                 && timeAvailable()
-                && (leftDrive.isBusy() || rightDrive.isBusy())
-                && movementTimer.seconds() < timeoutSeconds) {
+                && (frontLeft.isBusy()
+                || frontRight.isBusy()
+                || backLeft.isBusy()
+                || backRight.isBusy())
+                && movementTimer.seconds() < 8.0) {
 
-            telemetry.addData("Left Position",
-                    leftDrive.getCurrentPosition());
-
-            telemetry.addData("Right Position",
-                    rightDrive.getCurrentPosition());
-
-            telemetry.addData("Movement Time",
-                    "%.1f", movementTimer.seconds());
-
+            telemetry.addData("FL", frontLeft.getCurrentPosition());
+            telemetry.addData("FR", frontRight.getCurrentPosition());
+            telemetry.addData("BL", backLeft.getCurrentPosition());
+            telemetry.addData("BR", backRight.getCurrentPosition());
             telemetry.update();
 
             idle();
         }
 
         stopDrive();
-
-        leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        setRunUsingEncoders();
     }
 
-    private void collect(double seconds) {
-
-        if (!opModeIsActive() || !timeAvailable()) {
-            return;
-        }
-
-        telemetry.addLine("Collecting...");
+    private void collectPlaceholder(double seconds) {
+        telemetry.addData("Collect", "Not configured yet (%.1f sec)", seconds);
         telemetry.update();
-
-        intake.setPower(1.0);
-        leftIntakeServo.setPower(1.0);
-        rightIntakeServo.setPower(1.0);
-
-        ElapsedTime collectionTimer = new ElapsedTime();
-
-        while (opModeIsActive()
-                && timeAvailable()
-                && collectionTimer.seconds() < seconds) {
-
-            idle();
-        }
-
-        intake.setPower(0);
-        leftIntakeServo.setPower(0);
-        rightIntakeServo.setPower(0);
     }
 
-    private void shoot() {
-
-        // Placeholder until shooting mechanism is confirmed.
-        telemetry.addLine("Shoot action not configured yet.");
+    private void shootPlaceholder() {
+        telemetry.addLine("Shooting mechanism not configured.");
         telemetry.update();
-
-        sleep(250);
     }
 
     private void pollenReleasePlaceholder() {
-
-        // Placeholder until pollen-release mechanism is confirmed.
-        telemetry.addLine("Pollen release not configured yet.");
+        telemetry.addLine("Pollen release not configured.");
         telemetry.update();
-
-        sleep(250);
     }
 
     private void stopDrive() {
 
-        if (leftDrive != null) {
-            leftDrive.setPower(0);
-        }
-
-        if (rightDrive != null) {
-            rightDrive.setPower(0);
-        }
-    }
-
-    private void stopAll() {
-
-        stopDrive();
-
-        if (intake != null) {
-            intake.setPower(0);
-        }
-
-        if (leftIntakeServo != null) {
-            leftIntakeServo.setPower(0);
-        }
-
-        if (rightIntakeServo != null) {
-            rightIntakeServo.setPower(0);
-        }
+        if (frontLeft != null) frontLeft.setPower(0);
+        if (frontRight != null) frontRight.setPower(0);
+        if (backLeft != null) backLeft.setPower(0);
+        if (backRight != null) backRight.setPower(0);
     }
 }
