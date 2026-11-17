@@ -40,7 +40,6 @@ public class Backup_Strategy_Park_Left extends LinearOpMode
 
             telemetry.addData(">", "Finished");
             telemetry.update();
-
         }
     }
 }
