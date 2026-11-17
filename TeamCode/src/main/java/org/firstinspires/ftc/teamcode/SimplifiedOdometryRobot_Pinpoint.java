@@ -19,6 +19,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
 import java.util.List;
@@ -150,7 +151,7 @@ public class SimplifiedOdometryRobot_Pinpoint {
          * increase when you move the robot forward. And the Y (strafe) pod should increase when
          * you move the robot to the left.
          */
-        pinpoint.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.FORWARD,
+        pinpoint.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED,
                 GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
         /*
@@ -192,10 +193,13 @@ public class SimplifiedOdometryRobot_Pinpoint {
         driveDistance = pose2D.getY(DistanceUnit.INCH);
         rawHeading = pose2D.getHeading(AngleUnit.DEGREES);
 
-        AngularVelocity angularVelocity = imu.getRobotAngularVelocity(AngleUnit.DEGREES);
+        //AngularVelocity angularVelocity = new AngularVelocity(AngleUnit.DEGREES, 0.0f, 0.0f, (float) pinpoint.getHeadingVelocity(UnnormalizedAngleUnit.DEGREES), 0);
+        //AngularVelocity angularVelocity = imu.getRobotAngularVelocity(AngleUnit.DEGREES);
+
 
         heading     = rawHeading - headingOffset;
-        turnRate    = angularVelocity.zRotationRate;
+        //turnRate    = angularVelocity.zRotationRate;
+        turnRate = AngleUnit.DEGREES.normalize(pinpoint.getHeadingVelocity(UnnormalizedAngleUnit.DEGREES));
 
         if (showTelemetry) {
             myOpMode.telemetry.addData("Dist Ax:Lat", "%5.2f %5.2f", driveDistance, strafeDistance);
