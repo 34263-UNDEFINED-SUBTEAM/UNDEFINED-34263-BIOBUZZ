@@ -27,6 +27,8 @@ import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 
 
 /*
@@ -46,7 +48,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 
 @TeleOp(name = "MecanumTeleOp", group = "Test")
 //@Disabled
-class MecanumTeleOp extends OpMode {
+public class MecanumTeleOp extends OpMode {
 
     // Declare OpMode members.
     private DcMotor leftFrontDrive = null;
@@ -54,7 +56,6 @@ class MecanumTeleOp extends OpMode {
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
     private DcMotor intake = null;
-
 
     /*
      * These two variables are used to control the velocity of the launcher motor.

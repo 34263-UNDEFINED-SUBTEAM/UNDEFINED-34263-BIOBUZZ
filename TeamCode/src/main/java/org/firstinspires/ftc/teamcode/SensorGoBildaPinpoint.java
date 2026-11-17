@@ -19,7 +19,7 @@
 *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 *   SOFTWARE.
 */
-package org.firstinspires.ftc.robotcontroller.external.samples;
+package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
@@ -40,8 +40,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
  *
  * See the sensor's product page: https://www.gobilda.com/pinpoint-odometry-computer-imu-sensor-fusion-for-2-wheel-odometry/
  */
-// @TeleOp(name = "Sensor: GoBilda Pinpoint", group = "Sensor")
-@Disabled
+@TeleOp(name = "Sensor: GoBilda Pinpoint", group = "Sensor")
+//@Disabled
 public class SensorGoBildaPinpoint extends OpMode {
     // Create an instance of the sensor
     GoBildaPinpointDriver pinpoint;
