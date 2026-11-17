@@ -9,42 +9,46 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 @Autonomous(name = "Garden Auto", group = "Autonomous")
 public class GA extends LinearOpMode {
 
+    // ================= HARDWARE =================
+
     private DcMotor frontLeft;
     private DcMotor frontRight;
     private DcMotor backLeft;
     private DcMotor backRight;
 
-    // Tested drivetrain calibration
+    // ================= TESTED DRIVE CALIBRATION =================
+
     private static final double TICKS_PER_INCH = 41.81;
     private static final double TURN_DIAMETER_INCHES = 28.0;
 
     private static final double DRIVE_POWER = 0.25;
     private static final double TURN_POWER = 0.22;
 
+    // ================= SAFETY =================
+
     private static final double MOVE_TIMEOUT_BASE = 2.0;
     private static final double MAX_MOVE_TIMEOUT = 8.0;
     private static final double MATCH_LIMIT = 29.0;
 
-    // Garden route estimates: calibrate against the field diagram.
-    private static final double TILE_INCHES = 24.0;
-
     private final ElapsedTime matchTimer = new ElapsedTime();
     private final ElapsedTime moveTimer = new ElapsedTime();
+
+    // ================= MAIN =================
 
     @Override
     public void runOpMode() {
 
         if (!initializeHardware()) {
-            telemetry.addLine("HARDWARE ERROR");
+            telemetry.addLine("HARDWARE INITIALIZATION FAILED");
             telemetry.update();
             return;
         }
 
         telemetry.addLine("GARDEN AUTONOMOUS");
-        telemetry.addLine("Movement-only configuration");
-        telemetry.addLine("Route distances are estimates");
-        telemetry.addData("Ticks/Inch", TICKS_PER_INCH);
-        telemetry.addData("Turn Diameter", TURN_DIAMETER_INCHES);
+        telemetry.addLine("Starting position: Z1");
+        telemetry.addLine("Starting heading: Facing Row 1");
+        telemetry.addLine("Route: Z1 -> Y1 -> X2 -> V1");
+        telemetry.addLine("Movement distances are provisional");
         telemetry.update();
 
         waitForStart();
@@ -56,13 +60,19 @@ public class GA extends LinearOpMode {
 
         matchTimer.reset();
 
-        runGardenRoute();
+        boolean completed = runGardenRoute();
 
         stopDrive();
 
-        telemetry.addLine("GARDEN AUTO FINISHED");
+        telemetry.addData(
+                "GA Result",
+                completed ? "ROUTE COMPLETE" : "STOPPED / INCOMPLETE"
+        );
+
         telemetry.update();
     }
+
+    // ================= HARDWARE INITIALIZATION =================
 
     private boolean initializeHardware() {
 
@@ -80,10 +90,14 @@ public class GA extends LinearOpMode {
                     DcMotor.class, "back_right_drive");
 
         } catch (Exception e) {
+
             telemetry.addData("Hardware Error", e.getMessage());
             telemetry.update();
+
             return false;
         }
+
+        // Preserve tested motor directions.
 
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
         backLeft.setDirection(DcMotor.Direction.REVERSE);
@@ -92,11 +106,15 @@ public class GA extends LinearOpMode {
         backRight.setDirection(DcMotor.Direction.FORWARD);
 
         for (DcMotor motor : getMotors()) {
+
             motor.setPower(0);
+
             motor.setZeroPowerBehavior(
                     DcMotor.ZeroPowerBehavior.BRAKE);
+
             motor.setMode(
                     DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
             motor.setMode(
                     DcMotor.RunMode.RUN_USING_ENCODER);
         }
@@ -105,15 +123,28 @@ public class GA extends LinearOpMode {
     }
 
     private DcMotor[] getMotors() {
+
         return new DcMotor[]{
-                frontLeft, frontRight, backLeft, backRight
+                frontLeft,
+                frontRight,
+                backLeft,
+                backRight
         };
     }
 
-    // Positive forward = forward.
-    // Positive strafeRight = right.
+    // ================= MECANUM DRIVE =================
 
-    private boolean drive(double forward, double strafeRight) {
+    /*
+     * Positive forward = forward.
+     * Positive strafeRight = right.
+     *
+     * These are the original equations tested
+     * successfully on this robot.
+     */
+
+    private boolean drive(
+            double forward,
+            double strafeRight) {
 
         int flTicks = (int) Math.round(
                 (forward + strafeRight) * TICKS_PER_INCH);
@@ -128,12 +159,21 @@ public class GA extends LinearOpMode {
                 (forward + strafeRight) * TICKS_PER_INCH);
 
         return runToPosition(
-                flTicks, frTicks, blTicks, brTicks,
-                DRIVE_POWER, "DRIVE");
+                flTicks,
+                frTicks,
+                blTicks,
+                brTicks,
+                DRIVE_POWER,
+                "DRIVE F=" + forward + " R=" + strafeRight
+        );
     }
 
-    // Positive degrees = clockwise.
-    // Negative degrees = counterclockwise.
+    // ================= TURNING =================
+
+    /*
+     * Positive degrees = clockwise.
+     * Negative degrees = counterclockwise.
+     */
 
     private boolean turn(double degrees) {
 
@@ -145,9 +185,16 @@ public class GA extends LinearOpMode {
                 wheelTravel * TICKS_PER_INCH);
 
         return runToPosition(
-                ticks, -ticks, ticks, -ticks,
-                TURN_POWER, "TURN " + degrees);
+                ticks,
+                -ticks,
+                ticks,
+                -ticks,
+                TURN_POWER,
+                "TURN " + degrees
+        );
     }
+
+    // ================= ENCODER MOVEMENT ENGINE =================
 
     private boolean runToPosition(
             int flDelta,
@@ -165,22 +212,28 @@ public class GA extends LinearOpMode {
         DcMotor[] motors = getMotors();
 
         int[] deltas = {
-                flDelta, frDelta, blDelta, brDelta
+                flDelta,
+                frDelta,
+                blDelta,
+                brDelta
         };
 
         int maxTicks = 0;
 
         for (int i = 0; i < motors.length; i++) {
+
             int target =
                     motors[i].getCurrentPosition() + deltas[i];
 
             motors[i].setTargetPosition(target);
 
             maxTicks = Math.max(
-                    maxTicks, Math.abs(deltas[i]));
+                    maxTicks,
+                    Math.abs(deltas[i]));
         }
 
         for (DcMotor motor : motors) {
+
             motor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             motor.setPower(Math.abs(power));
         }
@@ -190,7 +243,8 @@ public class GA extends LinearOpMode {
 
         double timeoutSeconds = Math.min(
                 MAX_MOVE_TIMEOUT,
-                MOVE_TIMEOUT_BASE + estimatedInches / 5.0);
+                MOVE_TIMEOUT_BASE + estimatedInches / 5.0
+        );
 
         moveTimer.reset();
 
@@ -206,26 +260,48 @@ public class GA extends LinearOpMode {
             }
 
             telemetry.addData("Action", action);
-            telemetry.addData("Match Time", "%.1f / %.1f",
-                    matchTimer.seconds(), MATCH_LIMIT);
-            telemetry.addData("Movement Time", "%.1f / %.1f",
-                    moveTimer.seconds(), timeoutSeconds);
 
-            telemetry.addData("FL", "%d / %d",
+            telemetry.addData(
+                    "Match Time",
+                    "%.1f / %.1f",
+                    matchTimer.seconds(),
+                    MATCH_LIMIT
+            );
+
+            telemetry.addData(
+                    "Movement Time",
+                    "%.1f / %.1f",
+                    moveTimer.seconds(),
+                    timeoutSeconds
+            );
+
+            telemetry.addData(
+                    "Front Left",
+                    "%d / %d",
                     frontLeft.getCurrentPosition(),
-                    frontLeft.getTargetPosition());
+                    frontLeft.getTargetPosition()
+            );
 
-            telemetry.addData("FR", "%d / %d",
+            telemetry.addData(
+                    "Front Right",
+                    "%d / %d",
                     frontRight.getCurrentPosition(),
-                    frontRight.getTargetPosition());
+                    frontRight.getTargetPosition()
+            );
 
-            telemetry.addData("BL", "%d / %d",
+            telemetry.addData(
+                    "Back Left",
+                    "%d / %d",
                     backLeft.getCurrentPosition(),
-                    backLeft.getTargetPosition());
+                    backLeft.getTargetPosition()
+            );
 
-            telemetry.addData("BR", "%d / %d",
+            telemetry.addData(
+                    "Back Right",
+                    "%d / %d",
                     backRight.getCurrentPosition(),
-                    backRight.getTargetPosition());
+                    backRight.getTargetPosition()
+            );
 
             telemetry.update();
 
@@ -233,8 +309,10 @@ public class GA extends LinearOpMode {
                     || moveTimer.seconds() > timeoutSeconds) {
 
                 stopDrive();
-                telemetry.addLine("MOVEMENT STOPPED: TIMEOUT");
+
+                telemetry.addLine("MOVEMENT TIMEOUT");
                 telemetry.update();
+
                 return false;
             }
 
@@ -250,58 +328,70 @@ public class GA extends LinearOpMode {
         return false;
     }
 
+    // ================= MATCH TIMER =================
+
     private boolean timeLimitReached() {
         return matchTimer.seconds() >= MATCH_LIMIT;
     }
 
+    // ================= SAFE STOP =================
+
     private void stopDrive() {
 
-        if (frontLeft == null || frontRight == null
-                || backLeft == null || backRight == null) {
+        if (frontLeft == null
+                || frontRight == null
+                || backLeft == null
+                || backRight == null) {
             return;
         }
 
         for (DcMotor motor : getMotors()) {
+
             motor.setPower(0);
-            motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+            motor.setMode(
+                    DcMotor.RunMode.RUN_USING_ENCODER);
         }
     }
 
-    // ================================================
-    // GARDEN ROUTE
-    // ================================================
+    // ================= GARDEN ROUTE =================
 
-    private void runGardenRoute() {
+    private boolean runGardenRoute() {
 
         telemetry.addLine("STARTING GARDEN ROUTE");
         telemetry.update();
 
-        /*
-         * These are provisional movements, not verified
-         * measurements from the diagram.
-         *
-         * Positive strafe = right.
-         * Negative strafe = left.
-         */
+        // START: Z1, facing Row 1.
 
-        // 1. Approach shooting position
-        if (!drive(0, -TILE_INCHES)) return;
+        // WAYPOINT 1: Z1 -> Y1
+        // Strafe left approximately 24 inches.
 
-        // 2. Move toward the garden
-        if (!drive(TILE_INCHES, 0)) return;
+        telemetry.addLine("Moving Z1 to Y1");
+        telemetry.update();
 
-        // 3. Move back toward shooting position
-        if (!drive(-TILE_INCHES, 0)) return;
+        if (!drive(0, -24)) return false;
 
-        // 4. Move toward the flower position
-        if (!drive(0, TILE_INCHES)) return;
+        // WAYPOINT 2: Y1 -> X2
+        // Diagonal forward and right.
+        // Both distances are provisional.
 
-        // 5. Move toward the dropped pollen area
-        if (!drive(-TILE_INCHES, 0)) return;
+        telemetry.addLine("Moving Y1 to X2");
+        telemetry.update();
 
-        /*
-         * Shooting, collection, and pollen-release
-         * mechanisms are not connected in this version.
-         */
+        if (!drive(24, 24)) return false;
+
+        // WAYPOINT 3: X2 -> V1
+        // Diagonal backward and left.
+        // Both distances are provisional.
+
+        telemetry.addLine("Moving X2 to V1");
+        telemetry.update();
+
+        if (!drive(-24, -48)) return false;
+
+        telemetry.addLine("Garden movement route completed.");
+        telemetry.update();
+
+        return true;
     }
 }
