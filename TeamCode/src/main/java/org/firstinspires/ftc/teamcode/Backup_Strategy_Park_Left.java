@@ -5,14 +5,14 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 @Autonomous
-public class Forward_strait_left_park extends LinearOpMode
+public class Backup_Strategy_Park_Left extends LinearOpMode
 {
     // get an instance of the "Robot" class.
     private SimplifiedOdometryRobot_Pinpoint robot = new SimplifiedOdometryRobot_Pinpoint(this);
 
     @Override public void runOpMode()
     {
-        // Initialize the robot hardware & Turn on telemetry
+        // Initialize  the robot hardware & Turn on telemetry
         robot.initialize(true);
 
         // Wait for driver to press start
@@ -36,7 +36,7 @@ public class Forward_strait_left_park extends LinearOpMode
 
             telemetry.addData(">", "Left");
             telemetry.update();
-            robot.strafe(15, 0.60, 0.15);
+            robot.strafe(6, 0.60, 0.15);
 
             telemetry.addData(">", "Finished");
             telemetry.update();
