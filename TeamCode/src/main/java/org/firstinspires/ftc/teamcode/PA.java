@@ -44,13 +44,13 @@ public class PA extends LinearOpMode
 
             telemetry.addData(">", "backwards");
             telemetry.update();
-            robot.drive(-12, 0.60, 0.15);
+            robot.drive(-10, 0.60, 0.15);
 
             telemetry.addData(">", "Left");
             telemetry.update();
             robot.turnTo(90, 0.60, 0.15);
 
-            double strafePower = 2.5;
+            double strafePower = 0.5;
 
             telemetry.addData("Strafing", "Left");
             telemetry.addData("Power", strafePower);
