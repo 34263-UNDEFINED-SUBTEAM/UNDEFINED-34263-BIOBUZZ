@@ -36,7 +36,7 @@ public class Backup_Strategy_Park_Left_By_Flower extends LinearOpMode
 
             telemetry.addData(">", "pause");
             telemetry.update();
-            sleep(20000);
+            sleep(19000);
 
             telemetry.addData(">", "Left");
             telemetry.update();
