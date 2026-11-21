@@ -46,12 +46,17 @@ public class PA extends LinearOpMode
             telemetry.update();
             robot.turnTo(90, 0.60, 0.15);
 
-            telemetry.addData(">", "Left");
+            double strafePower = 0.5;
+
+            telemetry.addData("Strafing", "Left");
+            telemetry.addData("Power", strafePower);
             telemetry.update();
-            robot.strafe( -24, 0.60, 0.15);
 
             telemetry.addData(">", "Finished");
             telemetry.update();
         }
     }
 }
+
+/* Made by Forrest Boyle*/
+/* Encouraged by Rishan */
