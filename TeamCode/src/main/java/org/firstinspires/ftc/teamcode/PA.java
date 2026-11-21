@@ -44,6 +44,10 @@ public class PA extends LinearOpMode
 
             telemetry.addData(">", "Left");
             telemetry.update();
+            robot.turnTo(90, 0.60, 0.15);
+
+            telemetry.addData(">", "Left");
+            telemetry.update();
             robot.strafe( -24, 0.60, 0.15);
 
             telemetry.addData(">", "Finished");
