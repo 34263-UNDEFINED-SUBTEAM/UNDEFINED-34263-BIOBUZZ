@@ -42,6 +42,10 @@ public class PA extends LinearOpMode
             telemetry.update();
             sleep(500);
 
+            telemetry.addData(">", "backwards");
+            telemetry.update();
+            robot.drive(-12, 0.60, 0.15);
+
             telemetry.addData(">", "Left");
             telemetry.update();
             robot.turnTo(90, 0.60, 0.15);
