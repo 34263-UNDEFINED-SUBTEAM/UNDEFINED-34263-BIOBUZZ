@@ -254,7 +254,7 @@ public class SimplifiedOdometryRobot_Pinpoint {
         nectarIntake.setPower(0);
     }
 
-    public void setTurretPower(double power) {
+    public void setTurretPowerGuys(double power) {
         pollenTurret.setPower(power);
         nectarTurret.setPower(power);
     }
