@@ -27,6 +27,8 @@ import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 
 
 /*
@@ -54,7 +56,6 @@ public class MecanumTeleOp extends OpMode {
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
     private DcMotor intake = null;
-
 
     /*
      * These two variables are used to control the velocity of the launcher motor.
@@ -167,18 +168,13 @@ public class MecanumTeleOp extends OpMode {
         mecanumDrive(gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
 
         /*
-         * Set the intake power variable to equal the right trigger, minus the left trigger.
-         * Each trigger outputs a signal from 0-1, with 0 as fully released, and 1 fully depressed.
-         * This gives us proportional control of the intake speed. The speed increases as we pull
-         * the right trigger further. It's occasionally helpful to be able to reverse the intake,
-         * so we also factor in the left trigger. If the left trigger is fully depressed,
-         * the intakePower variable will be -1. If the right trigger is fully depressed, the variable
-         * will be 1. If the driver pulls both triggers, the intake will remain off.
-         * We use this technique (creating a variable, and setting it to our control inputs) to
-         * allow us to avoid setting the same motors/servos power more than once per loop. That can
-         * create erratic behavior.
+         * Pushing the Gamepad 2 left stick up moves the intake forward.
+         * Pushing it down reverses the intake. Leaving the stick neutral stops it.
          */
-        intakePower = gamepad1.right_trigger - gamepad1.left_trigger;
+        intakePower = -gamepad2.left_stick_y;
+        if (Math.abs(intakePower) < 0.05) {
+            intakePower = 0.0;
+        }
 
 
         /*

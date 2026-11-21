@@ -11,6 +11,7 @@ import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
@@ -65,6 +66,7 @@ public class SimplifiedOdometryRobot_Pinpoint {
     private DcMotor rightFrontDrive;    //  control the right front drive wheel
     private DcMotor leftBackDrive;      //  control the left back drive wheel
     private DcMotor rightBackDrive;     //  control the right back drive wheel
+    private DcMotor intake;
 
     private LinearOpMode myOpMode;
     private IMU imu;
@@ -106,6 +108,8 @@ public class SimplifiedOdometryRobot_Pinpoint {
         rightFrontDrive = setupDriveMotor("front_right_drive", DcMotor.Direction.FORWARD);
         leftBackDrive  = setupDriveMotor( "back_left_drive", DcMotor.Direction.REVERSE);
         rightBackDrive = setupDriveMotor( "back_right_drive",DcMotor.Direction.FORWARD);
+        intake = setupDriveMotor("intake", DcMotorSimple.Direction.REVERSE);
+        intake.setPower(0.0);
         imu = myOpMode.hardwareMap.get(IMU.class, "imu");
 
         List<LynxModule> allHubs = myOpMode.hardwareMap.getAll(LynxModule.class);
@@ -206,6 +210,9 @@ public class SimplifiedOdometryRobot_Pinpoint {
             myOpMode.telemetry.addData("Head Deg:Rate", "%5.2f %5.2f", heading, turnRate);
         }
         return true;  // do this so this function can be included in the condition for a while loop to keep values fresh.
+    }
+    public void setIntakePower(double power) {
+        intake.setPower(power);
     }
 
     //  ########################  Mid level control functions.  #############################3#

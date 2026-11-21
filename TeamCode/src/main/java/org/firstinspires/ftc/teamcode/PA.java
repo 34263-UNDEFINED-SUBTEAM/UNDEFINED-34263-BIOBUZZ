@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-@Autonomous(name = "PA - Pollen Autonomous", group = "Competition")
+@Autonomous(name = "PA - Pollen Auto", group = "Autonomous")
 public class PA extends LinearOpMode {
 
     private DcMotor frontLeft;
@@ -14,31 +14,27 @@ public class PA extends LinearOpMode {
     private DcMotor backLeft;
     private DcMotor backRight;
 
+    // Robot configuration
+    private static final double TICKS_PER_INCH = 41.81;
+    private static final double TURN_DIAMETER_INCHES = 28.0;
+
+    private static final double DRIVE_POWER = 0.55;
+    private static final double TURN_POWER = 0.45;
+
+    private static final double MATCH_LIMIT_SECONDS = 29.0;
+
     private final ElapsedTime matchTimer = new ElapsedTime();
-
-    // CALIBRATE THESE BEFORE ENABLING MOVEMENT.
-    private static final double TICKS_PER_INCH = 0.0;
-    private static final double TRACK_WIDTH_INCHES = 0.0;
-
-    private static final double AUTO_TIME_LIMIT = 29.0;
 
     @Override
     public void runOpMode() {
 
-        initializeRobot();
+        initializeHardware();
 
-        telemetry.addLine("PA - Pollen Autonomous");
-        telemetry.addLine("Four-motor mecanum drive");
-        telemetry.addLine("Checking encoder calibration...");
-
-        if (TICKS_PER_INCH <= 0 || TRACK_WIDTH_INCHES <= 0) {
-            telemetry.addLine("CALIBRATION REQUIRED.");
-            telemetry.addLine("Movement is disabled until calibrated.");
-            telemetry.update();
-            return;
-        }
-
-        telemetry.addLine("Ready. Waiting for start.");
+        telemetry.addLine("PA - Pollen Auto");
+        telemetry.addLine("Hardware initialized");
+        telemetry.addData("Ticks per inch", TICKS_PER_INCH);
+        telemetry.addData("Turn diameter", TURN_DIAMETER_INCHES);
+        telemetry.addLine("Ready to start");
         telemetry.update();
 
         waitForStart();
@@ -50,216 +46,251 @@ public class PA extends LinearOpMode {
 
         matchTimer.reset();
 
-        try {
+        telemetry.addLine("Pollen Auto started");
+        telemetry.update();
 
-            pollenReleasePlaceholder();
-            shootPlaceholder();
+        boolean completed = runPollenRoute();
 
-            if (!timeAvailable()) return;
-            drive(20, 0.5);
+        stopDrive();
 
-            if (!timeAvailable()) return;
-            turn(35);
-
-            if (!timeAvailable()) return;
-            drive(18, 0.5);
-
-            if (!timeAvailable()) return;
-            collectPlaceholder(2.0);
-
-            if (!timeAvailable()) return;
-            shootPlaceholder();
-
-            if (!timeAvailable()) return;
-            turn(-70);
-
-            if (!timeAvailable()) return;
-            drive(30, 0.5);
-
-            if (!timeAvailable()) return;
-            collectPlaceholder(3.0);
-
-        } finally {
-            stopDrive();
+        if (completed) {
+            telemetry.addLine("Pollen Auto completed");
+        } else {
+            telemetry.addLine("Pollen Auto stopped early");
+            telemetry.addData("Elapsed time", matchTimer.seconds());
         }
 
-        telemetry.addLine("PA finished.");
         telemetry.update();
+
+        sleep(1000);
     }
 
-    private void initializeRobot() {
+    private void initializeHardware() {
 
-        frontLeft = hardwareMap.get(
-                DcMotor.class, "front_left_drive");
+        frontLeft = hardwareMap.get(DcMotor.class, "front_left_drive");
+        frontRight = hardwareMap.get(DcMotor.class, "front_right_drive");
+        backLeft = hardwareMap.get(DcMotor.class, "back_left_drive");
+        backRight = hardwareMap.get(DcMotor.class, "back_right_drive");
 
-        frontRight = hardwareMap.get(
-                DcMotor.class, "front_right_drive");
-
-        backLeft = hardwareMap.get(
-                DcMotor.class, "back_left_drive");
-
-        backRight = hardwareMap.get(
-                DcMotor.class, "back_right_drive");
-
-        // Standard starting direction setup.
+        // Tested motor directions
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
         backLeft.setDirection(DcMotor.Direction.REVERSE);
 
         frontRight.setDirection(DcMotor.Direction.FORWARD);
         backRight.setDirection(DcMotor.Direction.FORWARD);
 
-        setBrakeBehavior();
+        DcMotor[] motors = {
+                frontLeft, frontRight, backLeft, backRight
+        };
 
-        resetEncoders();
-
-        setRunUsingEncoders();
-
-        stopDrive();
-    }
-
-    private void setBrakeBehavior() {
-
-        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-    }
-
-    private void resetEncoders() {
-
-        frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        backLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        backRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-    }
-
-    private void setRunUsingEncoders() {
-
-        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        backLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        backRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-    }
-
-    private boolean timeAvailable() {
-
-        if (isStopRequested()) {
-            return false;
+        for (DcMotor motor : motors) {
+            motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            motor.setPower(0);
         }
+    }
 
-        if (matchTimer.seconds() >= AUTO_TIME_LIMIT) {
-            telemetry.addLine("Autonomous time limit reached.");
-            telemetry.update();
-            stopDrive();
-            return false;
-        }
+    // Pollen Auto route
+    private boolean runPollenRoute() {
+
+        // 1. Forward 4 feet
+        if (!drive(48, 0)) return false;
+
+        // 2. Turn 90 degrees left
+        if (!turn(-90)) return false;
+
+        // 3. Wait 3 seconds
+        if (!waitSafely(3000)) return false;
+
+        // 4. Turn another 110 degrees left
+        if (!turn(-110)) return false;
+
+        // 5. Forward 6.5 feet
+        if (!drive(78, 0)) return false;
+
+        // 6. Turn 180 degrees right
+        if (!turn(180)) return false;
+
+        // 7. Forward 6.5 feet
+        if (!drive(78, 0)) return false;
+
+        // 8. Back up 1 foot
+        if (!drive(-12, 0)) return false;
+
+        // 9. Turn 125 degrees right
+        if (!turn(125)) return false;
+
+        // 10. Forward 6 feet
+        if (!drive(72, 0)) return false;
 
         return true;
     }
 
-    private void drive(double inches, double power) {
+    // Encoder-based mecanum movement
+    // Positive forward = forward
+    // Positive strafeRight = right
+    private boolean drive(double forwardInches, double strafeRightInches) {
 
-        int ticks = (int) (inches * TICKS_PER_INCH);
+        if (!canContinue()) return false;
 
-        moveMecanum(
-                ticks, ticks,
-                ticks, ticks,
-                power
+        int flTicks = (int) Math.round(
+                (forwardInches + strafeRightInches) * TICKS_PER_INCH);
+
+        int frTicks = (int) Math.round(
+                (forwardInches - strafeRightInches) * TICKS_PER_INCH);
+
+        int blTicks = (int) Math.round(
+                (forwardInches - strafeRightInches) * TICKS_PER_INCH);
+
+        int brTicks = (int) Math.round(
+                (forwardInches + strafeRightInches) * TICKS_PER_INCH);
+
+        return runToPosition(
+                flTicks,
+                frTicks,
+                blTicks,
+                brTicks,
+                DRIVE_POWER,
+                Math.abs(forwardInches) + Math.abs(strafeRightInches)
         );
-
-        telemetry.addData("Drive", "%.1f inches", inches);
-        telemetry.update();
     }
 
-    private void turn(double degrees) {
+    // Positive degrees = right/clockwise
+    // Negative degrees = left/counterclockwise
+    private boolean turn(double degrees) {
 
-        double arcDistance =
-                Math.PI * TRACK_WIDTH_INCHES * degrees / 360.0;
+        if (!canContinue()) return false;
 
-        int ticks = (int) (arcDistance * TICKS_PER_INCH);
+        double wheelDistance =
+                Math.PI * TURN_DIAMETER_INCHES * Math.abs(degrees) / 360.0;
 
-        moveMecanum(
-                ticks, -ticks,
-                ticks, -ticks,
-                0.4
+        int ticks = (int) Math.round(
+                wheelDistance * TICKS_PER_INCH);
+
+        int direction = degrees >= 0 ? 1 : -1;
+
+        int flTicks = direction * ticks;
+        int frTicks = -direction * ticks;
+        int blTicks = direction * ticks;
+        int brTicks = -direction * ticks;
+
+        return runToPosition(
+                flTicks,
+                frTicks,
+                blTicks,
+                brTicks,
+                TURN_POWER,
+                wheelDistance
         );
-
-        telemetry.addData("Turn", "%.1f degrees", degrees);
-        telemetry.update();
     }
 
-    private void moveMecanum(
+    private boolean runToPosition(
             int flTicks,
             int frTicks,
             int blTicks,
             int brTicks,
-            double power) {
+            double power,
+            double distanceInches) {
 
-        if (!opModeIsActive() || !timeAvailable()) {
-            stopDrive();
-            return;
+        if (!canContinue()) return false;
+
+        DcMotor[] motors = {
+                frontLeft, frontRight, backLeft, backRight
+        };
+
+        int[] targets = {
+                flTicks, frTicks, blTicks, brTicks
+        };
+
+        for (int i = 0; i < motors.length; i++) {
+            motors[i].setTargetPosition(
+                    motors[i].getCurrentPosition() + targets[i]);
+            motors[i].setMode(DcMotor.RunMode.RUN_TO_POSITION);
         }
 
-        frontLeft.setTargetPosition(
-                frontLeft.getCurrentPosition() + flTicks);
+        for (int i = 0; i < motors.length; i++) {
+            motors[i].setPower(power);
+        }
 
-        frontRight.setTargetPosition(
-                frontRight.getCurrentPosition() + frTicks);
-
-        backLeft.setTargetPosition(
-                backLeft.getCurrentPosition() + blTicks);
-
-        backRight.setTargetPosition(
-                backRight.getCurrentPosition() + brTicks);
-
-        frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        backLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        backRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-        double safePower = Math.abs(power);
-
-        frontLeft.setPower(safePower);
-        frontRight.setPower(safePower);
-        backLeft.setPower(safePower);
-        backRight.setPower(safePower);
-
+        double timeoutSeconds = 2.0 + distanceInches / 18.0;
         ElapsedTime movementTimer = new ElapsedTime();
+        movementTimer.reset();
+
+        boolean timedOut = false;
 
         while (opModeIsActive()
-                && timeAvailable()
-                && (frontLeft.isBusy()
-                || frontRight.isBusy()
-                || backLeft.isBusy()
-                || backRight.isBusy())
-                && movementTimer.seconds() < 8.0) {
+                && canContinue()
+                && anyMotorBusy()
+                && movementTimer.seconds() < timeoutSeconds) {
 
-            telemetry.addData("FL", frontLeft.getCurrentPosition());
-            telemetry.addData("FR", frontRight.getCurrentPosition());
-            telemetry.addData("BL", backLeft.getCurrentPosition());
-            telemetry.addData("BR", backRight.getCurrentPosition());
+            telemetry.addData("Movement time", "%.1f", movementTimer.seconds());
+            telemetry.addData("Match time", "%.1f", matchTimer.seconds());
+
+            telemetry.addData("FL", "%d / %d",
+                    frontLeft.getCurrentPosition(),
+                    frontLeft.getTargetPosition());
+
+            telemetry.addData("FR", "%d / %d",
+                    frontRight.getCurrentPosition(),
+                    frontRight.getTargetPosition());
+
+            telemetry.addData("BL", "%d / %d",
+                    backLeft.getCurrentPosition(),
+                    backLeft.getTargetPosition());
+
+            telemetry.addData("BR", "%d / %d",
+                    backRight.getCurrentPosition(),
+                    backRight.getTargetPosition());
+
             telemetry.update();
 
             idle();
         }
 
+        if (movementTimer.seconds() >= timeoutSeconds
+                && anyMotorBusy()) {
+            timedOut = true;
+        }
+
         stopDrive();
-        setRunUsingEncoders();
+
+        for (DcMotor motor : motors) {
+            motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        }
+
+        return !timedOut && canContinue();
     }
 
-    private void collectPlaceholder(double seconds) {
-        telemetry.addData("Collect", "Not configured yet (%.1f sec)", seconds);
-        telemetry.update();
+    private boolean anyMotorBusy() {
+        return frontLeft.isBusy()
+                || frontRight.isBusy()
+                || backLeft.isBusy()
+                || backRight.isBusy();
     }
 
-    private void shootPlaceholder() {
-        telemetry.addLine("Shooting mechanism not configured.");
-        telemetry.update();
+    private boolean waitSafely(long milliseconds) {
+
+        ElapsedTime waitTimer = new ElapsedTime();
+        waitTimer.reset();
+
+        while (opModeIsActive()
+                && canContinue()
+                && waitTimer.milliseconds() < milliseconds) {
+
+            telemetry.addData("Waiting", "%.1f seconds",
+                    waitTimer.seconds());
+            telemetry.update();
+
+            idle();
+        }
+
+        return canContinue();
     }
 
-    private void pollenReleasePlaceholder() {
-        telemetry.addLine("Pollen release not configured.");
-        telemetry.update();
+    private boolean canContinue() {
+        return opModeIsActive()
+                && matchTimer.seconds() < MATCH_LIMIT_SECONDS;
     }
 
     private void stopDrive() {
