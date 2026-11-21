@@ -246,17 +246,22 @@ public class SimplifiedOdometryRobot_Pinpoint {
         return true;  // do this so this function can be included in the condition for a while loop to keep values fresh.
     }
 
-    public void shootBothPollenAndNectarGuys() {
-        pollenIntake.setPower(1);
-        nectarIntake.setPower(1);
-        myOpMode.sleep(500);
-        pollenIntake.setPower(0);
-        nectarIntake.setPower(0);
+    public void shootBothPollenAndNectarGuys(double power) {
+        pollenShooter.setPower(power);
+        nectarShooter.setPower(power);
     }
 
     public void setTurretPowerGuys(double power) {
         pollenTurret.setPower(power);
         nectarTurret.setPower(power);
+    }
+
+    public void setPollenPower(double power) {
+        pollenIntake.setPower(power);
+    }
+
+    public void setNectarPower(double power) {
+        nectarIntake.setPower(power);
     }
     public void setIntakePower(double power) {
         intake.setPower(power);

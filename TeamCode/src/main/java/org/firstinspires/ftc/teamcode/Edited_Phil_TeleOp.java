@@ -151,11 +151,28 @@ public class Edited_Phil_TeleOp extends LinearOpMode
             }
             if (shootBoth) {
 
-                robot.shootBothPollenAndNectarGuys();
+                robot.shootBothPollenAndNectarGuys(1);
 
+            }
+            else {
+
+                robot.shootBothPollenAndNectarGuys(0);
             }
 
 
+            if (gamepad2.right_trigger_pressed) {
+                robot.setPollenPower(1.0);
+            }
+            else {
+                robot.setPollenPower(0.0);
+            }
+
+                if (gamepad2.left_trigger_pressed) {
+                robot.setNectarPower(1);
+            }
+            else {
+                robot.setNectarPower(0);
+            }
 
             if (gamepad1.circleWasPressed()) {
                 robot.setServoPower(1.0);
