@@ -99,6 +99,14 @@ public class Edited_Phil_TeleOp extends LinearOpMode
             //  Drive the wheels based on the desired axis motions
             robot.moveRobot(drive, strafe, yaw);
 
+            // Gamepad 2. Up moves forward down moves backward. None stops it.
+            double intakePower = -gamepad2.left_stick_y;
+            if (Math.abs(intakePower) < 0.05) {
+                intakePower = 0.0;
+            }
+            robot.setIntakePower(intakePower);
+            telemetry.addData("Intake", intakePower);
+
             // If the robot has just been sitting here for a while, make heading setpoint track any gyro drift to prevent rotating.
             if ((drive == 0) && (strafe == 0) && (yaw == 0)) {
                 if (stopTime.time() > HEADING_HOLD_TIME) {
