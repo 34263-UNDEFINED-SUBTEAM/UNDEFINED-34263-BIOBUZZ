@@ -115,6 +115,14 @@ public class Edited_Phil_TeleOp extends LinearOpMode
                     intakePower = 0.07;
                 }
             }
+
+            if (gamepad1.circleWasPressed()) {
+                robot.setServoPower(1.0);
+            }
+            else {
+                robot.setServoPower(0.0);
+        }
+
             robot.setIntakePower(intakePower);
             telemetry.addData("Intake", intakePower);
 

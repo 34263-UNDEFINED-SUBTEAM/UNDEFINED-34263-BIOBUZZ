@@ -6,13 +6,17 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
+
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
@@ -67,7 +71,8 @@ public class SimplifiedOdometryRobot_Pinpoint {
     private DcMotor leftBackDrive;      //  control the left back drive wheel
     private DcMotor rightBackDrive;     //  control the right back drive wheel
     private DcMotor intake;
-
+    private CRServo leftIntakeServo = null;
+    private CRServo rightIntakeServo = null;
     private LinearOpMode myOpMode;
     private IMU imu;
     private ElapsedTime holdTimer = new ElapsedTime();  // User for any motion requiring a hold time or timeout.
@@ -111,6 +116,11 @@ public class SimplifiedOdometryRobot_Pinpoint {
         intake = setupDriveMotor("intake", DcMotorSimple.Direction.REVERSE);
         intake.setPower(0.0);
         imu = myOpMode.hardwareMap.get(IMU.class, "imu");
+        leftIntakeServo = hardwareMap.get(CRServo.class, "left_intake_servo");
+        rightIntakeServo = hardwareMap.get(CRServo.class, "right_intake_servo");
+        rightIntakeServo.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftIntakeServo.setPower(0);
+        rightIntakeServo.setPower(0);
 
         List<LynxModule> allHubs = myOpMode.hardwareMap.getAll(LynxModule.class);
         for (LynxModule module : allHubs) {
@@ -213,6 +223,10 @@ public class SimplifiedOdometryRobot_Pinpoint {
     }
     public void setIntakePower(double power) {
         intake.setPower(power);
+    }
+    public void setServoPower(double power){
+        leftIntakeServo.setPower(power);
+        rightIntakeServo.setPower(power);
     }
 
     //  ########################  Mid level control functions.  #############################3#
