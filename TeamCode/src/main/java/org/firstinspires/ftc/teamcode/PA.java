@@ -46,7 +46,7 @@ public class PA extends LinearOpMode
             telemetry.update();
             robot.turnTo(90, 0.60, 0.15);
 
-            double strafePower = 0.5;
+            double strafePower = 2.5;
 
             telemetry.addData("Strafing", "Left");
             telemetry.addData("Power", strafePower);
