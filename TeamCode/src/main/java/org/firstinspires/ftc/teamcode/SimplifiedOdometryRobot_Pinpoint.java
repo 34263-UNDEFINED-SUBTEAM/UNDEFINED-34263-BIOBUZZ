@@ -75,6 +75,15 @@ public class SimplifiedOdometryRobot_Pinpoint {
     private CRServo rightIntakeServo = null;
     private LinearOpMode myOpMode;
     private IMU imu;
+
+    private DcMotor pollenShooter;
+    private CRServo pollenIntake = null;
+    private CRServo pollenTurret= null;
+
+    private DcMotor nectarShooter;
+    private CRServo nectarIntake = null;
+    private CRServo nectarTurret= null;
+
     private ElapsedTime holdTimer = new ElapsedTime();  // User for any motion requiring a hold time or timeout.
 
     private double rawHeading       = 0; // Unmodified heading (degrees)
@@ -115,12 +124,27 @@ public class SimplifiedOdometryRobot_Pinpoint {
         rightBackDrive = setupDriveMotor( "back_right_drive",DcMotor.Direction.FORWARD);
         intake = setupDriveMotor("intake", DcMotorSimple.Direction.REVERSE);
         intake.setPower(0.0);
+
+        pollenShooter = setupDriveMotor("pollen_shooter", DcMotor.Direction.FORWARD);
+        nectarShooter = setupDriveMotor("nectar_shooter", DcMotor.Direction.FORWARD);
+        pollenIntake = hardwareMap.get(CRServo.class, "pollen_intake");
+        pollenTurret = hardwareMap.get(CRServo.class, "pollen_turret");
+        nectarIntake = hardwareMap.get(CRServo.class, "nectar_intake");
+        nectarTurret = hardwareMap.get(CRServo.class, "nectar_turret");
+
+        pollenShooter.setPower(1);
+        nectarShooter.setPower(1);
+
         imu = myOpMode.hardwareMap.get(IMU.class, "imu");
+
         leftIntakeServo = hardwareMap.get(CRServo.class, "left_intake_servo");
         rightIntakeServo = hardwareMap.get(CRServo.class, "right_intake_servo");
         rightIntakeServo.setDirection(DcMotorSimple.Direction.REVERSE);
+
         leftIntakeServo.setPower(0);
         rightIntakeServo.setPower(0);
+
+
 
         List<LynxModule> allHubs = myOpMode.hardwareMap.getAll(LynxModule.class);
         for (LynxModule module : allHubs) {
@@ -220,6 +244,19 @@ public class SimplifiedOdometryRobot_Pinpoint {
             myOpMode.telemetry.addData("Head Deg:Rate", "%5.2f %5.2f", heading, turnRate);
         }
         return true;  // do this so this function can be included in the condition for a while loop to keep values fresh.
+    }
+
+    public void shootBothPollenAndNectarGuys() {
+        pollenIntake.setPower(1);
+        nectarIntake.setPower(1);
+        myOpMode.sleep(500);
+        pollenIntake.setPower(0);
+        nectarIntake.setPower(0);
+    }
+
+    public void setTurretPower(double power) {
+        pollenTurret.setPower(power);
+        nectarTurret.setPower(power);
     }
     public void setIntakePower(double power) {
         intake.setPower(power);

@@ -99,7 +99,7 @@ public class Edited_Phil_TeleOp extends LinearOpMode
             //  Drive the wheels based on the desired axis motions
             robot.moveRobot(drive, strafe, yaw);
 
-            // Gamepad 2. Up moves forward down moves backward. None stops it.
+            // Gamepad 1. Up moves forward down moves backward. None stops it.
             double intakePower = -gamepad1.right_stick_y;
             if (Math.abs(intakePower) < 0.05) {
                 if (Math.abs(intakePower) < 0.01) {
@@ -116,15 +116,53 @@ public class Edited_Phil_TeleOp extends LinearOpMode
                 }
             }
 
+            robot.setIntakePower(intakePower);
+            telemetry.addData("Intake", intakePower);
+
+            double turretPower = -gamepad2.right_stick_x;
+            if (Math.abs(turretPower) < 0.05) {
+                if (Math.abs(turretPower) < 0.01) {
+                    turretPower = 0.09;
+                }
+                if (Math.abs(turretPower) < 0.02) {
+                    turretPower = 0.02;
+                }
+                if (Math.abs(turretPower) < 0.03) {
+                    turretPower = 0.05;
+                }
+                if (Math.abs(turretPower) < 0.04) {
+                    turretPower = 0.07;
+                }
+            }
+
+            robot.setTurretPowerGuys(turretPower);
+            telemetry.addData("Turret from Rishaan hi guys", turretPower);
+
+            boolean shootBoth = true;
+            if (gamepad2.left_stick_y < 0.7) {
+
+                shootBoth = false;
+
+            }
+            if (gamepad2.right_stick_y < 0.7) {
+
+                shootBoth = false;
+
+            }
+            if (shootBoth) {
+
+                robot.shootBothPollenAndNectarGuys();
+
+            }
+
+
+
             if (gamepad1.circleWasPressed()) {
                 robot.setServoPower(1.0);
             }
             else {
                 robot.setServoPower(0.0);
         }
-
-            robot.setIntakePower(intakePower);
-            telemetry.addData("Intake", intakePower);
 
             // If the robot has just been sitting here for a while, make heading setpoint track any gyro drift to prevent rotating.
             if ((drive == 0) && (strafe == 0) && (yaw == 0)) {
