@@ -65,6 +65,7 @@ public class Edited_Phil_TeleOp extends LinearOpMode
             double drive  = gamepad1.left_stick_y * SAFE_DRIVE_SPEED;      //  Fwd/back on left stick
             double strafe = (gamepad1.right_trigger - gamepad1.left_trigger) * SAFE_STRAFE_SPEED;
             double yaw    = -gamepad1.left_stick_x * SAFE_YAW_SPEED;       //  Rotate on right stick
+            double intake = gamepad1.right_stick_x; // intake
 
             //  OR... For special conditions, Use the DPAD to make pure orthoginal motions
             if (gamepad1.left_trigger_pressed) {
@@ -72,9 +73,9 @@ public class Edited_Phil_TeleOp extends LinearOpMode
             } else if (gamepad1.right_trigger_pressed) {
                 strafe = -SAFE_DRIVE_SPEED / 2.0;
             } else if (gamepad1.left_stick_y > 0.2) {
-                drive = SAFE_DRIVE_SPEED / 2.0;
+                drive = -SAFE_DRIVE_SPEED / 2.0;
             } else if (gamepad1.left_stick_y < -0.2) {
-                drive = -SAFE_STRAFE_SPEED / 2.0;
+                drive = SAFE_STRAFE_SPEED / 2.0;
             }
 
             // This is where we heep the robot heading locked so it doesn't turn while driving or strafing in a straight line.
@@ -99,9 +100,20 @@ public class Edited_Phil_TeleOp extends LinearOpMode
             robot.moveRobot(drive, strafe, yaw);
 
             // Gamepad 2. Up moves forward down moves backward. None stops it.
-            double intakePower = -gamepad2.left_stick_y;
+            double intakePower = -gamepad1.right_stick_y;
             if (Math.abs(intakePower) < 0.05) {
-                intakePower = 0.0;
+                if (Math.abs(intakePower) < 0.01) {
+                intakePower = 0.09;
+                }
+                if (Math.abs(intakePower) < 0.02) {
+                    intakePower = 0.02;
+                }
+                if (Math.abs(intakePower) < 0.03) {
+                    intakePower = 0.05;
+                }
+                if (Math.abs(intakePower) < 0.04) {
+                    intakePower = 0.07;
+                }
             }
             robot.setIntakePower(intakePower);
             telemetry.addData("Intake", intakePower);
