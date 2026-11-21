@@ -11,7 +11,6 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 
-import org.firstinspires.ftc.teamcode.Code_Backups.SimplifiedOdometryRobot;
 
 
 /*
@@ -50,7 +49,7 @@ public class Edited_Phil_TeleOp extends LinearOpMode
             // Read and display sensor data
             robot.readSensors();
             telemetry.update();
-        };
+        }
 
         while (opModeIsActive())
         {
@@ -63,7 +62,7 @@ public class Edited_Phil_TeleOp extends LinearOpMode
             }
 
             // read joystick values and scale according to limits set at top of this file
-            double drive  = -gamepad1.left_stick_y * SAFE_DRIVE_SPEED;      //  Fwd/back on left stick
+            double drive  = gamepad1.left_stick_y * SAFE_DRIVE_SPEED;      //  Fwd/back on left stick
             double strafe = (gamepad1.right_trigger - gamepad1.left_trigger) * SAFE_STRAFE_SPEED;
             double yaw    = -gamepad1.left_stick_x * SAFE_YAW_SPEED;       //  Rotate on right stick
 

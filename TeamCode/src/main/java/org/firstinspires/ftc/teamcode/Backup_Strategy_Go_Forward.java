@@ -36,7 +36,6 @@ public class Backup_Strategy_Go_Forward extends LinearOpMode
 
             telemetry.addData(">", "finished");
             telemetry.update();
-
         }
     }
 }
