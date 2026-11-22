@@ -66,7 +66,7 @@ public class Edited_Phil_TeleOp extends LinearOpMode
             double yaw    = -gamepad1.left_stick_x * SAFE_YAW_SPEED;       //  Rotate on right stick
             double intake = gamepad1.right_stick_x; // intake
 
-            //  OR... For special conditions, Use the DPAD to make pure orthoginal motions
+            //  OR... For special conditions, Use the DPAD to make pure original motions
             if (gamepad1.left_trigger_pressed) {
                 strafe = SAFE_STRAFE_SPEED / 2.0;
             } else if (gamepad1.right_trigger_pressed) {
@@ -148,7 +148,8 @@ public class Edited_Phil_TeleOp extends LinearOpMode
             else {
 
                 robot.shootBothPollenAndNectarGuys(0);
-            }
+
+              }
 
 
             if (gamepad2.right_trigger_pressed) {
@@ -170,7 +171,7 @@ public class Edited_Phil_TeleOp extends LinearOpMode
             }
             else {
                 robot.setServoPower(0.0);
-        }
+            }
 
             // If the robot has just been sitting here for a while, make heading setpoint track any gyro drift to prevent rotating.
             if ((drive == 0) && (strafe == 0) && (yaw == 0)) {
