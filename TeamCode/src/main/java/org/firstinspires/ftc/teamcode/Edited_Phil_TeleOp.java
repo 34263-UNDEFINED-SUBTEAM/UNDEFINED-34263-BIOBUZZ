@@ -4,14 +4,14 @@
     See the readme for a link to a video tutorial explaining the operation and limitations of the code.
  */
 
+// problem
+
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 
-import org.firstinspires.ftc.teamcode.Code_Backups.SimplifiedOdometryRobot;
 
 
 /*
@@ -20,18 +20,18 @@ import org.firstinspires.ftc.teamcode.Code_Backups.SimplifiedOdometryRobot;
  * The IMU gyro is used to stabilize the heading when the operator is not requesting a turn.
  */
 
-@TeleOp
+@TeleOp(name ="edited phils teleop")
 public class Edited_Phil_TeleOp extends LinearOpMode
 {
-    final double SAFE_DRIVE_SPEED   = 0.8 ; // Adjust this to your robot and your driver.  Slower usually means more accuracy.  Max value = 1.0
-    final double SAFE_STRAFE_SPEED  = 0.8 ; // Adjust this to your robot and your driver.  Slower usually means more accuracy.  Max value = 1.0
+    final double SAFE_DRIVE_SPEED   = 1.0 ; // Adjust this to your robot and your driver.  Slower usually means more accuracy.  Max value = 1.0
+    final double SAFE_STRAFE_SPEED  = 0.7 ; // Adjust this to your robot and your driver.  Slower usually means more accuracy.  Max value = 1.0
     final double SAFE_YAW_SPEED     = 0.5 ; // Adjust this to your robot and your driver.  Slower usually means more accuracy.  Max value = 1.0
-    final double HEADING_HOLD_TIME  = 10.0 ; // How long to hold heading once all driver input stops. (This Avoids effects of Gyro Drift)
+    final double HEADING_HOLD_TIME  = 8.0 ; // How long to hold heading once all driver input stops. (This Avoids effects of Gyro Drift)
 
     // local parameters
     ElapsedTime stopTime   = new ElapsedTime();  // Use for timeouts.
     boolean autoHeading    = false; // used to indicate when heading should be locked.
-    private GoBildaPinpointDriver pinpoint;   // Create an instance of the sensor
+ // Create an instance of the sensor
 
     // get an instance of the "Robot" class.
 
@@ -50,7 +50,7 @@ public class Edited_Phil_TeleOp extends LinearOpMode
             // Read and display sensor data
             robot.readSensors();
             telemetry.update();
-        };
+        }
 
         while (opModeIsActive())
         {
@@ -63,19 +63,20 @@ public class Edited_Phil_TeleOp extends LinearOpMode
             }
 
             // read joystick values and scale according to limits set at top of this file
-            double drive  = -gamepad1.left_stick_y * SAFE_DRIVE_SPEED;      //  Fwd/back on left stick
-            double strafe = -gamepad1.left_stick_y * SAFE_STRAFE_SPEED;     //  Left/Right on left stick
-            double yaw    = -gamepad1.right_stick_x * SAFE_YAW_SPEED;       //  Rotate on right stick
+            double drive  = gamepad1.left_stick_y * SAFE_DRIVE_SPEED;      //  Fwd/back on left stick
+            double strafe = (gamepad1.right_trigger - gamepad1.left_trigger) * SAFE_STRAFE_SPEED;
+            double yaw    = -gamepad1.left_stick_x * SAFE_YAW_SPEED;       //  Rotate on right stick
+            double intake = gamepad1.right_stick_x; // intake
 
-            //  OR... For special conditions, Use the DPAD to make pure orthoginal motions
-            if (gamepad1.dpad_left) {
-                strafe = SAFE_DRIVE_SPEED / 2.0;
-            } else if (gamepad1.dpad_right) {
-                strafe = -SAFE_DRIVE_SPEED / 2.0;
-            } else if (gamepad1.dpad_up) {
-                drive = SAFE_DRIVE_SPEED / 2.0;
-            } else if (gamepad1.dpad_down) {
-                drive = -SAFE_STRAFE_SPEED / 2.0;
+            //  OR... For special conditions, Use the DPAD to make pure original motions
+            if (gamepad1.left_trigger_pressed) {
+                strafe = SAFE_STRAFE_SPEED / 2.0;
+            } else if (gamepad1.right_trigger_pressed) {
+                strafe = -SAFE_STRAFE_SPEED / 2.0;
+            } else if (gamepad1.left_stick_y > 0.2) {
+                drive = -SAFE_DRIVE_SPEED / 2.0;
+            } else if (gamepad1.left_stick_y < -0.2) {
+                drive = SAFE_STRAFE_SPEED / 2.0;
             }
 
             // This is where we heep the robot heading locked so it doesn't turn while driving or strafing in a straight line.
@@ -98,6 +99,81 @@ public class Edited_Phil_TeleOp extends LinearOpMode
 
             //  Drive the wheels based on the desired axis motions
             robot.moveRobot(drive, strafe, yaw);
+
+            // Gamepad 1. Up moves forward down moves backward. None stops it.
+            double intakePower = -gamepad1.right_stick_y;
+            if (Math.abs(intakePower) < 0.05) {
+                if (Math.abs(intakePower) < 0.01) {
+                intakePower = 0.0;
+                } else if (Math.abs(intakePower) < 0.02) {
+                    intakePower = 0.02;
+                } else if (Math.abs(intakePower) < 0.03) {
+                    intakePower = 0.05;
+                } else if (Math.abs(intakePower) < 0.04) {
+                    intakePower = 0.07;
+                }
+            }
+
+            robot.setIntakePower(intakePower);
+            telemetry.addData("Intake", intakePower);
+
+            double turretPower = -gamepad2.right_stick_x;
+            if (Math.abs(turretPower) < 0.05) {
+                if (Math.abs(turretPower) < 0.01) {
+                    turretPower = 0.09;
+                }
+                if (Math.abs(turretPower) < 0.02) {
+                    turretPower = 0.02;
+                }
+                if (Math.abs(turretPower) < 0.03) {
+                    turretPower = 0.05;
+                }
+                if (Math.abs(turretPower) < 0.04) {
+                    turretPower = 0.07;
+                }
+            }
+
+            robot.setTurretPowerGuys(turretPower);
+            telemetry.addData("Turret", turretPower);
+
+            boolean shootBoth = true;
+            if (gamepad2.left_stick_y < 0.7) {
+
+                shootBoth = false;
+
+            }
+            if (shootBoth) {
+
+                robot.shootBothPollenAndNectarGuys(1);
+
+            }
+            else {
+
+                robot.shootBothPollenAndNectarGuys(0);
+
+              }
+
+
+            if (gamepad2.right_trigger_pressed) {
+                robot.setPollenPower(1.0);
+            }
+            else {
+                robot.setPollenPower(0.0);
+            }
+
+                if (gamepad2.left_trigger_pressed) {
+                robot.setNectarPower(1);
+            }
+            else {
+                robot.setNectarPower(0);
+            }
+
+            if (gamepad1.circleWasPressed()) {
+                robot.setServoPower(1.0);
+            }
+            else {
+                robot.setServoPower(0.0);
+            }
 
             // If the robot has just been sitting here for a while, make heading setpoint track any gyro drift to prevent rotating.
             if ((drive == 0) && (strafe == 0) && (yaw == 0)) {

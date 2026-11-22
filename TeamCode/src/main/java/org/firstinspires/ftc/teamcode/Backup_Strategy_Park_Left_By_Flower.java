@@ -1,11 +1,11 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 @Autonomous
-public class Auto_Strategy_Right extends LinearOpMode
+public class Backup_Strategy_Park_Left_By_Flower extends LinearOpMode
 {
     // get an instance of the "Robot" class.
     private SimplifiedOdometryRobot_Pinpoint robot = new SimplifiedOdometryRobot_Pinpoint(this);
@@ -25,26 +25,22 @@ public class Auto_Strategy_Right extends LinearOpMode
         // Run Auto if stop was not pressed.
         if (opModeIsActive())
         {
+            telemetry.addData(">", "teleop converter");
+            telemetry.update();
+            sleep(1000);
+
             // Note, this example takes more than 30 seconds to execute, so turn OFF the auto timer.
             telemetry.addData(">", "forward");
             telemetry.update();
-            robot.drive(  48, 0.60, 0.25);
+            robot.drive(  12, 0.60, 0.25);
 
             telemetry.addData(">", "pause");
             telemetry.update();
-            sleep(500);
+            sleep(19000);
 
             telemetry.addData(">", "Left");
             telemetry.update();
-            robot.turnTo(90, 0.60, 0.15);
-
-            telemetry.addData(">", "shoot");
-            telemetry.update();
-            sleep(500);
-
-            telemetry.addData(">", "Left");
-            telemetry.update();
-            robot.strafe(48, 0.60, 0.15);
+            robot.strafe(62, 0.60, 0.15);
 
             telemetry.addData(">", "Finished");
             telemetry.update();
