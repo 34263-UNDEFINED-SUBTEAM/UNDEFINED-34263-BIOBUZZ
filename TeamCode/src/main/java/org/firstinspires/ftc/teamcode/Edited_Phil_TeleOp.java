@@ -165,7 +165,7 @@ public class Edited_Phil_TeleOp extends LinearOpMode
                 robot.setNectarPower(0);
             }
 
-            if (gamepad1.circle) {
+            if (gamepad1.circleWasPressed()) {
                 robot.setServoPower(1.0);
             }
             else {
