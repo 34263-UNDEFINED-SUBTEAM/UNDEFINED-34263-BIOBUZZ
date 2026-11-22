@@ -42,6 +42,8 @@ public class PA extends LinearOpMode
             telemetry.update();
             sleep(500);
 
+            robot.resetHeading();
+
             telemetry.addData(">", "backwards");
             telemetry.update();
             robot.drive(-10, 0.60, 0.15);
@@ -52,12 +54,9 @@ public class PA extends LinearOpMode
             robot.turnTo(90, 0.60, 0.15);
             sleep(500);
 
-          /*  double strafePower = 0.5;
-
-            telemetry.addData("Strafing", "Left");
-            telemetry.addData("Power", strafePower);
+            telemetry.addData(">", "Strafe");
             telemetry.update();
-            sleep(500); */
+            robot.strafe(45, 0.60, 0.15);
 
             telemetry.addData(">", "Finished");
             telemetry.update();
@@ -66,4 +65,4 @@ public class PA extends LinearOpMode
 }
 
 /* Made by Forrest Boyle was
- Encouraged by Rishaan Das's very woke pesonality*/
+ Encouraged by Rishaan Das's very woke personality*/
