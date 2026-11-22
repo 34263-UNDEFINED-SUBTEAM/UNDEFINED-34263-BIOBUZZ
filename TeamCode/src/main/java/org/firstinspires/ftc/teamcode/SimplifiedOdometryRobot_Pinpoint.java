@@ -6,13 +6,17 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
+
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
@@ -67,9 +71,19 @@ public class SimplifiedOdometryRobot_Pinpoint {
     private DcMotor leftBackDrive;      //  control the left back drive wheel
     private DcMotor rightBackDrive;     //  control the right back drive wheel
     private DcMotor intake;
-
+    private CRServo leftIntakeServo = null;
+    private CRServo rightIntakeServo = null;
     private LinearOpMode myOpMode;
     private IMU imu;
+
+    private DcMotor pollenShooter;
+    private CRServo pollenIntake = null;
+    private CRServo pollenTurret= null;
+
+    private DcMotor nectarShooter;
+    private CRServo nectarIntake = null;
+    private CRServo nectarTurret= null;
+
     private ElapsedTime holdTimer = new ElapsedTime();  // User for any motion requiring a hold time or timeout.
 
     private double rawHeading       = 0; // Unmodified heading (degrees)
@@ -110,7 +124,27 @@ public class SimplifiedOdometryRobot_Pinpoint {
         rightBackDrive = setupDriveMotor( "back_right_drive",DcMotor.Direction.FORWARD);
         intake = setupDriveMotor("intake", DcMotorSimple.Direction.REVERSE);
         intake.setPower(0.0);
+
+        pollenShooter = setupDriveMotor("pollen_shooter", DcMotor.Direction.FORWARD);
+        nectarShooter = setupDriveMotor("nectar_shooter", DcMotor.Direction.FORWARD);
+        pollenIntake = hardwareMap.get(CRServo.class, "pollen_intake");
+        pollenTurret = hardwareMap.get(CRServo.class, "pollen_turret");
+        nectarIntake = hardwareMap.get(CRServo.class, "nectar_intake");
+        nectarTurret = hardwareMap.get(CRServo.class, "nectar_turret");
+
+        pollenShooter.setPower(1);
+        nectarShooter.setPower(1);
+
         imu = myOpMode.hardwareMap.get(IMU.class, "imu");
+
+        leftIntakeServo = hardwareMap.get(CRServo.class, "left_intake_servo");
+        rightIntakeServo = hardwareMap.get(CRServo.class, "right_intake_servo");
+        rightIntakeServo.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        leftIntakeServo.setPower(0);
+        rightIntakeServo.setPower(0);
+
+
 
         List<LynxModule> allHubs = myOpMode.hardwareMap.getAll(LynxModule.class);
         for (LynxModule module : allHubs) {
@@ -211,8 +245,30 @@ public class SimplifiedOdometryRobot_Pinpoint {
         }
         return true;  // do this so this function can be included in the condition for a while loop to keep values fresh.
     }
+
+    public void shootBothPollenAndNectarGuys(double power) {
+        pollenShooter.setPower(power);
+        nectarShooter.setPower(power);
+    }
+
+    public void setTurretPowerGuys(double power) {
+        pollenTurret.setPower(power);
+        nectarTurret.setPower(power);
+    }
+
+    public void setPollenPower(double power) {
+        pollenIntake.setPower(power);
+    }
+
+    public void setNectarPower(double power) {
+        nectarIntake.setPower(power);
+    }
     public void setIntakePower(double power) {
         intake.setPower(power);
+    }
+    public void setServoPower(double power){
+        leftIntakeServo.setPower(power);
+        rightIntakeServo.setPower(power);
     }
 
     //  ########################  Mid level control functions.  #############################3#
