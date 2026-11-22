@@ -22,7 +22,7 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 @TeleOp
 public class Edited_Phil_TeleOp extends LinearOpMode
 {
-    final double SAFE_DRIVE_SPEED   = 0.8 ; // Adjust this to your robot and your driver.  Slower usually means more accuracy.  Max value = 1.0
+    final double SAFE_DRIVE_SPEED   = 1.0 ; // Adjust this to your robot and your driver.  Slower usually means more accuracy.  Max value = 1.0
     final double SAFE_STRAFE_SPEED  = 0.8 ; // Adjust this to your robot and your driver.  Slower usually means more accuracy.  Max value = 1.0
     final double SAFE_YAW_SPEED     = 0.5 ; // Adjust this to your robot and your driver.  Slower usually means more accuracy.  Max value = 1.0
     final double HEADING_HOLD_TIME  = 10.0 ; // How long to hold heading once all driver input stops. (This Avoids effects of Gyro Drift)
@@ -103,15 +103,12 @@ public class Edited_Phil_TeleOp extends LinearOpMode
             double intakePower = -gamepad1.right_stick_y;
             if (Math.abs(intakePower) < 0.05) {
                 if (Math.abs(intakePower) < 0.01) {
-                intakePower = 0.09;
-                }
-                if (Math.abs(intakePower) < 0.02) {
+                intakePower = 0.0;
+                } else if (Math.abs(intakePower) < 0.02) {
                     intakePower = 0.02;
-                }
-                if (Math.abs(intakePower) < 0.03) {
+                } else if (Math.abs(intakePower) < 0.03) {
                     intakePower = 0.05;
-                }
-                if (Math.abs(intakePower) < 0.04) {
+                } else if (Math.abs(intakePower) < 0.04) {
                     intakePower = 0.07;
                 }
             }
@@ -140,11 +137,6 @@ public class Edited_Phil_TeleOp extends LinearOpMode
 
             boolean shootBoth = true;
             if (gamepad2.left_stick_y < 0.7) {
-
-                shootBoth = false;
-
-            }
-            if (gamepad2.right_stick_y < 0.7) {
 
                 shootBoth = false;
 

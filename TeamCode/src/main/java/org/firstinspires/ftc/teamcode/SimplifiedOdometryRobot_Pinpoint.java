@@ -127,18 +127,18 @@ public class SimplifiedOdometryRobot_Pinpoint {
 
         pollenShooter = setupDriveMotor("pollen_shooter", DcMotor.Direction.FORWARD);
         nectarShooter = setupDriveMotor("nectar_shooter", DcMotor.Direction.FORWARD);
-        pollenIntake = hardwareMap.get(CRServo.class, "pollen_intake");
-        pollenTurret = hardwareMap.get(CRServo.class, "pollen_turret");
-        nectarIntake = hardwareMap.get(CRServo.class, "nectar_intake");
-        nectarTurret = hardwareMap.get(CRServo.class, "nectar_turret");
+        pollenIntake = myOpMode.hardwareMap.get(CRServo.class, "pollen_intake");
+        pollenTurret = myOpMode.hardwareMap.get(CRServo.class, "pollen_turret");
+        nectarIntake = myOpMode.hardwareMap.get(CRServo.class, "nectar_intake");
+        nectarTurret = myOpMode.hardwareMap.get(CRServo.class, "nectar_turret");
 
-        pollenShooter.setPower(1);
-        nectarShooter.setPower(1);
+        pollenShooter.setPower(0);
+        nectarShooter.setPower(0);
 
         imu = myOpMode.hardwareMap.get(IMU.class, "imu");
 
-        leftIntakeServo = hardwareMap.get(CRServo.class, "left_intake_servo");
-        rightIntakeServo = hardwareMap.get(CRServo.class, "right_intake_servo");
+        leftIntakeServo = myOpMode.hardwareMap.get(CRServo.class, "left_intake_servo");
+        rightIntakeServo = myOpMode.hardwareMap.get(CRServo.class, "right_intake_servo");
         rightIntakeServo.setDirection(DcMotorSimple.Direction.REVERSE);
 
         leftIntakeServo.setPower(0);
@@ -248,7 +248,7 @@ public class SimplifiedOdometryRobot_Pinpoint {
 
     public void shootBothPollenAndNectarGuys(double power) {
         pollenShooter.setPower(power);
-        nectarShooter.setPower(power);
+        nectarShooter.setPower(-power);
     }
 
     public void setTurretPowerGuys(double power) {
