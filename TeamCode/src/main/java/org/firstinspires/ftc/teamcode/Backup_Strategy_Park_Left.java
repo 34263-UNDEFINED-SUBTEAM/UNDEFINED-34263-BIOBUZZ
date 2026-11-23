@@ -36,7 +36,11 @@ public class Backup_Strategy_Park_Left extends LinearOpMode
 
             telemetry.addData(">", "Left");
             telemetry.update();
-            robot.strafe(10, 0.60, 0.15);
+            robot.strafe(-20, 0.60, 0.15);
+
+            telemetry.addData(">", "pause");
+            telemetry.update();
+            sleep(1000);
 
             telemetry.addData(">", "Finished");
             telemetry.update();
