@@ -115,7 +115,25 @@ public class Phil_TeleOp_Extra_Attempt_Edit extends LinearOpMode
                 telemetry.addData("Target Area", llResult.getTa());
                 telemetry.addData("Bot Pose", botPose.toString());
                 telemetry.addData("Yaw", botPose.getOrientation().getYaw());
+                double targetOffsetAngle_Vertical = llResult.getTy();
+                // how many degrees back is your limelight rotated from perfectly vertical?
+                double limelightMountAngleDegrees = 25.0; //CHANGE!!!
+
+                // distance from the center of the Limelight lens to the floor
+                double limelightLensHeightInches = 20.0; //CHANGE!!!
+
+                // distance from the target to the floor
+                double goalHeightInches = 60.0; //CHANGE!!!
+
+                double angleToGoalDegrees = limelightMountAngleDegrees + targetOffsetAngle_Vertical;
+                double angleToGoalRadians = angleToGoalDegrees * (3.14159 / 180.0);
+                //calculate distance
+                double distanceFromLimelightToGoalInches = (goalHeightInches - limelightLensHeightInches) / Math.tan(angleToGoalRadians);
+
             }
+
+
+
 
             // This is where we heep the robot heading locked so it doesn't turn while driving or strafing in a straight line.
             // Is the driver turning the robot, or should it hold its heading?
