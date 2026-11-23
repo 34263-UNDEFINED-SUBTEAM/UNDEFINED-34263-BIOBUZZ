@@ -8,6 +8,10 @@ package org.firstinspires.ftc.teamcode;
 
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
 
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.limelightvision.LLStatus;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
@@ -20,6 +24,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -75,6 +80,8 @@ public class SimplifiedOdometryRobot_Pinpoint {
     private CRServo rightIntakeServo = null;
     private LinearOpMode myOpMode;
     private IMU imu;
+    private Limelight3A limelight;
+
 
     private DcMotor pollenShooter;
     private CRServo pollenIntake = null;
@@ -84,6 +91,7 @@ public class SimplifiedOdometryRobot_Pinpoint {
     private CRServo nectarIntake = null;
     private CRServo nectarTurret= null;
 
+
     private ElapsedTime holdTimer = new ElapsedTime();  // User for any motion requiring a hold time or timeout.
 
     private double rawHeading       = 0; // Unmodified heading (degrees)
@@ -91,6 +99,7 @@ public class SimplifiedOdometryRobot_Pinpoint {
 
     private double turnRate           = 0; // Latest Robot Turn Rate from IMU
     private boolean showTelemetry     = false;
+
 
     // Robot Constructor
     public SimplifiedOdometryRobot_Pinpoint(LinearOpMode opmode) {

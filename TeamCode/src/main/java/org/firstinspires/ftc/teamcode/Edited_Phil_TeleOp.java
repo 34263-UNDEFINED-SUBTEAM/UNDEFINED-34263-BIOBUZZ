@@ -24,7 +24,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class Edited_Phil_TeleOp extends LinearOpMode
 {
     final double SAFE_DRIVE_SPEED   = 1.0 ; // Adjust this to your robot and your driver.  Slower usually means more accuracy.  Max value = 1.0
-    final double SAFE_STRAFE_SPEED  = 0.7 ; // Adjust this to your robot and your driver.  Slower usually means more accuracy.  Max value = 1.0
+    final double SAFE_STRAFE_SPEED  = 1.0 ; // Adjust this to your robot and your driver.  Slower usually means more accuracy.  Max value = 1.0
     final double SAFE_YAW_SPEED     = 0.5 ; // Adjust this to your robot and your driver.  Slower usually means more accuracy.  Max value = 1.0
     final double HEADING_HOLD_TIME  = 8.0 ; // How long to hold heading once all driver input stops. (This Avoids effects of Gyro Drift)
 
@@ -69,9 +69,9 @@ public class Edited_Phil_TeleOp extends LinearOpMode
             double intake = gamepad1.right_stick_x; // intake
 
             //  OR... For special conditions, Use the DPAD to make pure original motions
-            if (gamepad1.left_trigger_pressed) {
+            if (gamepad1.right_trigger_pressed) {
                 strafe = SAFE_STRAFE_SPEED / 2.0;
-            } else if (gamepad1.right_trigger_pressed) {
+            } else if (gamepad1.left_trigger_pressed) {
                 strafe = -SAFE_STRAFE_SPEED / 2.0;
             } else if (gamepad1.left_stick_y > 0.2) {
                 drive = -SAFE_DRIVE_SPEED / 2.0;
