@@ -29,7 +29,8 @@ public class SampleAutonomous_Pinpoint_Strafe extends LinearOpMode
 
             // Strafe
             robot.strafe( 24, 0.60, 0.15);
-           
+
+
         }
     }
 }
