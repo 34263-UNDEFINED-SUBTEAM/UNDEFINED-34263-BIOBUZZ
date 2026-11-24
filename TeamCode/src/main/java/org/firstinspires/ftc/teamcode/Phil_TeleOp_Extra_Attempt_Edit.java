@@ -28,7 +28,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
  * The IMU gyro is used to stabilize the heading when the operator is not requesting a turn.
  */
 
-@TeleOp(name ="edited phils teleop")
+@TeleOp(name ="edited phils teleop 2")
 public class Phil_TeleOp_Extra_Attempt_Edit extends LinearOpMode
 {
     final double SAFE_DRIVE_SPEED   = 1.0 ; // Adjust this to your robot and your driver.  Slower usually means more accuracy.  Max value = 1.0
