@@ -78,7 +78,6 @@ public class Phil_TeleOp_Extra_Attempt_Edit extends LinearOpMode
             robot.readSensors();
             // Allow the driver to reset the gyro by pressing both small gamepad buttons
             limelight.start();
-        }
 
 
 
@@ -89,14 +88,14 @@ public class Phil_TeleOp_Extra_Attempt_Edit extends LinearOpMode
 
             // read joystick values and scale according to limits set at top of this file
             double drive  = gamepad1.left_stick_y * SAFE_DRIVE_SPEED;      //  Fwd/back on left stick
-            double strafe = (gamepad1.right_trigger - gamepad1.left_trigger) * SAFE_STRAFE_SPEED;
-            double yaw    = -gamepad1.left_stick_x * SAFE_YAW_SPEED;       //  Rotate on right stick
+            double strafe = 0;
+            double yaw    = (gamepad1.right_trigger - gamepad1.left_trigger) * SAFE_YAW_SPEED;       //  Rotate on right stick
             double intake = gamepad1.right_stick_x; // intake
 
             //  OR... For special conditions, Use the DPAD to make pure original motions
-            if (gamepad1.right_trigger_pressed) {
+            if (gamepad1.left_bumper) {
                 strafe = SAFE_STRAFE_SPEED / 2.0;
-            } else if (gamepad1.left_trigger_pressed) {
+            } else if (gamepad1.right_bumper) {
                 strafe = -SAFE_STRAFE_SPEED / 2.0;
             } else if (gamepad1.left_stick_y > 0.2) {
                 drive = -SAFE_DRIVE_SPEED / 2.0;
@@ -160,7 +159,7 @@ public class Phil_TeleOp_Extra_Attempt_Edit extends LinearOpMode
             double intakePower = -gamepad1.right_stick_y;
             if (Math.abs(intakePower) < 0.05) {
                 if (Math.abs(intakePower) < 0.01) {
-                intakePower = 0.0;
+                    intakePower = 0.0;
                 } else if (Math.abs(intakePower) < 0.02) {
                     intakePower = 0.02;
                 } else if (Math.abs(intakePower) < 0.03) {
@@ -207,7 +206,7 @@ public class Phil_TeleOp_Extra_Attempt_Edit extends LinearOpMode
 
                 robot.shootBothPollenAndNectarGuys(0);
 
-              }
+            }
 
 
             if (gamepad2.right_trigger_pressed) {
@@ -217,7 +216,7 @@ public class Phil_TeleOp_Extra_Attempt_Edit extends LinearOpMode
                 robot.setPollenPower(0.0);
             }
 
-                if (gamepad2.left_trigger_pressed) {
+            if (gamepad2.left_trigger_pressed) {
                 robot.setNectarPower(1);
             }
             else {
@@ -239,5 +238,7 @@ public class Phil_TeleOp_Extra_Attempt_Edit extends LinearOpMode
             } else {
                 stopTime.reset();
             }
+        }
+
         }
     }
