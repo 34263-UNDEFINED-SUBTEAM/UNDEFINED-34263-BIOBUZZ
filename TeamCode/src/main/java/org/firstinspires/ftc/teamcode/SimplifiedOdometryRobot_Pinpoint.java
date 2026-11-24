@@ -6,16 +6,25 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
+
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.limelightvision.LLStatus;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -33,19 +42,19 @@ public class SimplifiedOdometryRobot_Pinpoint {
 
     private static final double DRIVE_GAIN          = 0.03;    // Strength of axial position control
     private static final double DRIVE_ACCEL         = 2.0;     // Acceleration limit.  Percent Power change per second.  1.0 = 0-100% power in 1 sec.
-    private static final double DRIVE_TOLERANCE     = 0.5;     // Controller is is "inPosition" if position error is < +/- this amount
+    private static final double DRIVE_TOLERANCE     = 0.5;     // Controller is "inPosition" if position error is < +/- this amount
     private static final double DRIVE_DEADBAND      = 0.2;     // Error less than this causes zero output.  Must be smaller than DRIVE_TOLERANCE
     private static final double DRIVE_MAX_AUTO      = 0.6;     // "default" Maximum Axial power limit during autonomous
 
     private static final double STRAFE_GAIN         = 0.03;    // Strength of lateral position control
     private static final double STRAFE_ACCEL        = 1.5;     // Acceleration limit.  Percent Power change per second.  1.0 = 0-100% power in 1 sec.
-    private static final double STRAFE_TOLERANCE    = 0.5;     // Controller is is "inPosition" if position error is < +/- this amount
+    private static final double STRAFE_TOLERANCE    = 0.5;     // Controller is "inPosition" if position error is < +/- this amount
     private static final double STRAFE_DEADBAND     = 0.2;     // Error less than this causes zero output.  Must be smaller than DRIVE_TOLERANCE
     private static final double STRAFE_MAX_AUTO     = 0.6;     // "default" Maximum Lateral power limit during autonomous
 
     private static final double YAW_GAIN            = 0.018;    // Strength of Yaw position control
     private static final double YAW_ACCEL           = 3.0;     // Acceleration limit.  Percent Power change per second.  1.0 = 0-100% power in 1 sec.
-    private static final double YAW_TOLERANCE       = 1.0;     // Controller is is "inPosition" if position error is < +/- this amount
+    private static final double YAW_TOLERANCE       = 1.0;     // Controller is "inPosition" if position error is < +/- this amount
     private static final double YAW_DEADBAND        = 0.25;    // Error less than this causes zero output.  Must be smaller than DRIVE_TOLERANCE
     private static final double YAW_MAX_AUTO        = 0.6;     // "default" Maximum Yaw power limit during autonomous
 
@@ -67,9 +76,22 @@ public class SimplifiedOdometryRobot_Pinpoint {
     private DcMotor leftBackDrive;      //  control the left back drive wheel
     private DcMotor rightBackDrive;     //  control the right back drive wheel
     private DcMotor intake;
-
+    private CRServo leftIntakeServo = null;
+    private CRServo rightIntakeServo = null;
     private LinearOpMode myOpMode;
     private IMU imu;
+    private Limelight3A limelight;
+
+
+    private DcMotor pollenShooter;
+    private CRServo pollenIntake = null;
+    private CRServo pollenTurret= null;
+
+    private DcMotor nectarShooter;
+    private CRServo nectarIntake = null;
+    private CRServo nectarTurret= null;
+
+
     private ElapsedTime holdTimer = new ElapsedTime();  // User for any motion requiring a hold time or timeout.
 
     private double rawHeading       = 0; // Unmodified heading (degrees)
@@ -77,6 +99,7 @@ public class SimplifiedOdometryRobot_Pinpoint {
 
     private double turnRate           = 0; // Latest Robot Turn Rate from IMU
     private boolean showTelemetry     = false;
+
 
     // Robot Constructor
     public SimplifiedOdometryRobot_Pinpoint(LinearOpMode opmode) {
@@ -110,7 +133,27 @@ public class SimplifiedOdometryRobot_Pinpoint {
         rightBackDrive = setupDriveMotor( "back_right_drive",DcMotor.Direction.FORWARD);
         intake = setupDriveMotor("intake", DcMotorSimple.Direction.REVERSE);
         intake.setPower(0.0);
+
+        pollenShooter = setupDriveMotor("pollen_shooter", DcMotor.Direction.FORWARD);
+        nectarShooter = setupDriveMotor("nectar_shooter", DcMotor.Direction.FORWARD);
+        pollenIntake = myOpMode.hardwareMap.get(CRServo.class, "pollen_intake");
+        pollenTurret = myOpMode.hardwareMap.get(CRServo.class, "pollen_turret");
+        nectarIntake = myOpMode.hardwareMap.get(CRServo.class, "nectar_intake");
+        nectarTurret = myOpMode.hardwareMap.get(CRServo.class, "nectar_turret");
+
+        pollenShooter.setPower(0);
+        nectarShooter.setPower(0);
+
         imu = myOpMode.hardwareMap.get(IMU.class, "imu");
+
+        leftIntakeServo = myOpMode.hardwareMap.get(CRServo.class, "left_intake_servo");
+        rightIntakeServo = myOpMode.hardwareMap.get(CRServo.class, "right_intake_servo");
+        rightIntakeServo.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        leftIntakeServo.setPower(0);
+        rightIntakeServo.setPower(0);
+
+
 
         List<LynxModule> allHubs = myOpMode.hardwareMap.getAll(LynxModule.class);
         for (LynxModule module : allHubs) {
@@ -170,7 +213,7 @@ public class SimplifiedOdometryRobot_Pinpoint {
     }
 
     /**
-     *   Setup a drive motor with passed parameters.  Ensure encoder is reset.
+     * Set up a drive motor with passed parameters.  Ensure encoder is reset.
      * @param deviceName  Text name associated with motor in Robot Configuration
      * @param direction   Desired direction to make the wheel run FORWARD with positive power input
      * @return the DcMotor object
@@ -211,8 +254,30 @@ public class SimplifiedOdometryRobot_Pinpoint {
         }
         return true;  // do this so this function can be included in the condition for a while loop to keep values fresh.
     }
+
+    public void shootBothPollenAndNectarGuys(double power) {
+        pollenShooter.setPower(power);
+        nectarShooter.setPower(-power);
+    }
+
+    public void setTurretPowerGuys(double power) {
+        pollenTurret.setPower(power);
+        nectarTurret.setPower(power);
+    }
+
+    public void setPollenPower(double power) {
+        pollenIntake.setPower(power);
+    }
+
+    public void setNectarPower(double power) {
+        nectarIntake.setPower(power);
+    }
     public void setIntakePower(double power) {
         intake.setPower(power);
+    }
+    public void setServoPower(double power){
+        leftIntakeServo.setPower(power);
+        rightIntakeServo.setPower(power);
     }
 
     //  ########################  Mid level control functions.  #############################3#
@@ -258,8 +323,8 @@ public class SimplifiedOdometryRobot_Pinpoint {
     public void strafe(double distanceInches, double power, double holdTime) {
         resetOdometry();
 
-        driveController.reset(0.0);             //  MaintaStrafe distance
-        yawController.reset();                          // Maintain last turn anglein zero drive drift
+        driveController.reset(0.0);             // Main Strafe distance
+        yawController.reset();                          // Maintain last turn angle in zero drive drift
         strafeController.reset(distanceInches, power);  // Achieve desired
         holdTimer.reset();
 
