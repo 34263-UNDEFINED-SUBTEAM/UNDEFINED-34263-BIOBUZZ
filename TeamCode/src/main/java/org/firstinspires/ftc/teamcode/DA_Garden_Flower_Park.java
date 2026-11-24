@@ -29,7 +29,13 @@ public class DA_Garden_Flower_Park extends LinearOpMode
             telemetry.update();
             robot.turnTo(90, 0.45, 0.5);
 
-            //Put pollen in the garden
+            robot.setIntakePower(-1);
+            telemetry.addData("Intake", -1);
+
+            sleep(1000);
+
+            telemetry.addData(">", "Pause");
+            telemetry.update();
 
             telemetry.addData(">", "Turn");
             telemetry.update();
@@ -39,7 +45,11 @@ public class DA_Garden_Flower_Park extends LinearOpMode
             telemetry.update();
             robot.drive( 48, 0.60, 0.25);
 
-            //Intake from flower
+            robot.setServoPower(1.0);
+            robot.setIntakePower(1);
+            sleep(1000);
+            robot.setServoPower(0.0);
+            robot.setIntakePower(0);
 
             telemetry.addData(">", "forward");
             telemetry.update();
