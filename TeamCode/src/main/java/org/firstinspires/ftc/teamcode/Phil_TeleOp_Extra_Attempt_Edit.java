@@ -56,20 +56,20 @@ public class Phil_TeleOp_Extra_Attempt_Edit extends LinearOpMode
     {
         // Initialize the drive hardware & Turn on telemetry
         robot.initialize(true);
+        imu = hardwareMap.get(IMU.class, "imu");
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
 
         // Wait for driver to press start
         while(opModeInInit()) {
             telemetry.addData(">", "Touch Play to drive");
-            limelight = hardwareMap.get(Limelight3A.class, "limelight");
             limelight.pipelineSwitch(0); // CHANGE!!
-            imu = hardwareMap.get(IMU.class, "imu");
             RevHubOrientationOnRobot revHubOrientationOnRobot = new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.UP,
                     RevHubOrientationOnRobot.UsbFacingDirection.FORWARD);
             imu.initialize(new IMU.Parameters(revHubOrientationOnRobot));
             // Read and display sensor data
             robot.readSensors();
             telemetry.update();
-
+            limelight.start();
 
         }
 
@@ -77,7 +77,6 @@ public class Phil_TeleOp_Extra_Attempt_Edit extends LinearOpMode
         {
             robot.readSensors();
             // Allow the driver to reset the gyro by pressing both small gamepad buttons
-            limelight.start();
 
 
 
