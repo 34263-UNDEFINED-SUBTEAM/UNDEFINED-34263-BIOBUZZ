@@ -14,8 +14,6 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.hardware.limelightvision.LLResult;
-import com.qualcomm.hardware.limelightvision.LLResultTypes;
-import com.qualcomm.hardware.limelightvision.LLStatus;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
@@ -28,8 +26,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
  * The IMU gyro is used to stabilize the heading when the operator is not requesting a turn.
  */
 
-@TeleOp(name ="edited phils teleop 2")
-public class Phil_TeleOp_Extra_Attempt_Edit extends LinearOpMode
+@TeleOp(name ="Tele-Op + Limelight")
+public class Limelight_Tele_Op extends LinearOpMode
 {
     final double SAFE_DRIVE_SPEED   = 1.0 ; // Adjust this to your robot and your driver.  Slower usually means more accuracy.  Max value = 1.0
     final double SAFE_STRAFE_SPEED  = 1.0 ; // Adjust this to your robot and your driver.  Slower usually means more accuracy.  Max value = 1.0
@@ -52,6 +50,7 @@ public class Phil_TeleOp_Extra_Attempt_Edit extends LinearOpMode
     private Limelight3A limelight;
     private IMU imu;
 
+
     @Override public void runOpMode()
     {
         // Initialize the drive hardware & Turn on telemetry
@@ -59,19 +58,23 @@ public class Phil_TeleOp_Extra_Attempt_Edit extends LinearOpMode
         imu = hardwareMap.get(IMU.class, "imu");
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
 
+        limelight.pipelineSwitch(0); // CHANGE!!
+        RevHubOrientationOnRobot revHubOrientationOnRobot = new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.UP,
+                RevHubOrientationOnRobot.UsbFacingDirection.FORWARD);
+        imu.initialize(new IMU.Parameters(revHubOrientationOnRobot));
+        // Read and display sensor data
+        limelight.start();
+
         // Wait for driver to press start
         while(opModeInInit()) {
             telemetry.addData(">", "Touch Play to drive");
-            limelight.pipelineSwitch(0); // CHANGE!!
-            RevHubOrientationOnRobot revHubOrientationOnRobot = new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.UP,
-                    RevHubOrientationOnRobot.UsbFacingDirection.FORWARD);
-            imu.initialize(new IMU.Parameters(revHubOrientationOnRobot));
-            // Read and display sensor data
+
             robot.readSensors();
             telemetry.update();
-            limelight.start();
+
 
         }
+
 
         while (opModeIsActive())
         {
